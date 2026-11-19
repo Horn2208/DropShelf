@@ -35,6 +35,7 @@ macOS-App für eine schwebende Ablage (ähnlich wie Dropover, aber selbst gebaut
 > **Fenster:**
 > - Etwas größer (ca. 220×250), große Eckenradien (~26 pt, `.continuous`), dunkles Material (`NSVisualEffectView` `.hudWindow`, `.behindWindow`), feine 0,5-pt-Kontur in Weiß mit ~10 % Deckkraft, weicher Schatten.
 > - Oben mittig ein kleiner Griff (36×5 pt, Kapsel, Weiß ~25 %) als Hinweis zum Verschieben.
+> - **Verschieben:** Das Fenster lässt sich zuverlässig verschieben – am Griff, an jedem freien Hintergrundbereich und an der Leer-Ansicht. Umsetzung: eigene kleine NSView für diese Bereiche, die in `mouseDown` `window?.performDrag(with: event)` aufruft (nicht nur `isMovableByWindowBackground`, da SwiftUI-/NSHostingView-Inhalt die Ereignisse sonst schluckt). Ziehen auf der Vorschau bzw. den Listenzeilen zieht weiterhin Dateien heraus (bestehende `DragOutView`), Knöpfe bleiben klickbar. Fenster bleibt dabei innerhalb des sichtbaren Bildschirms; die neue Position wird wie bisher gespeichert. Mauszeiger über Griff/Hintergrund: `NSCursor.openHand`, beim Ziehen `closedHand`.
 > - Oben links ein runder Schließen-Knopf, oben rechts ein runder Aufklapp-Knopf (Chevron). Beide 28 pt, Kreis mit Weiß ~12 % Hintergrund, SF Symbol in Weiß ~80 %, Hover leicht heller.
 >
 > **Inhalt:**
