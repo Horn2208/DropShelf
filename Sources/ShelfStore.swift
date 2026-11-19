@@ -69,7 +69,7 @@ final class Shelf: ObservableObject, Identifiable {
         let gone = items.filter { urls.contains($0.url) }
         guard !gone.isEmpty else { return }
         items.removeAll { urls.contains($0.url) }
-        orphans += gone.map(\.url).filter { $0.path.hasPrefix(Self.cacheDir.path) }
+        orphans += gone.map(\.url).filter(Self.isCacheFile)
         // Scopes bleiben bis discard() offen, damit der Empfänger noch lesen kann.
         if items.isEmpty { expanded = false }
         onChange?()
@@ -81,11 +81,30 @@ final class Shelf: ObservableObject, Identifiable {
     func discard() {
         scoped.forEach { $0.stopAccessingSecurityScopedResource() }
         scoped = []
-        for url in items.map(\.url) + orphans where url.path.hasPrefix(Self.cacheDir.path) {
+        for url in items.map(\.url) + orphans where Self.isCacheFile(url) {
             try? FileManager.default.removeItem(at: url)
         }
         items = []
         orphans = []
+    }
+
+    /// Löscht entfernte Cache-Dateien (beim Beenden; der Empfänger liest dann nicht mehr).
+    func purgeOrphans() {
+        orphans.forEach { try? FileManager.default.removeItem(at: $0) }
+        orphans = []
+    }
+
+    nonisolated static func canonical(_ url: URL) -> String { url.standardizedFileURL.resolvingSymlinksInPath().path }
+
+    nonisolated static func isCacheFile(_ url: URL) -> Bool {
+        canonical(url).hasPrefix(canonical(cacheDir) + "/")
+    }
+
+    /// Löscht alle Cache-Dateien, die in keiner Ablage mehr referenziert sind.
+    nonisolated static func cleanCache(keeping urls: [URL]) {
+        let keep = Set(urls.map(canonical))
+        let files = (try? FileManager.default.contentsOfDirectory(at: cacheDir, includingPropertiesForKeys: nil)) ?? []
+        for f in files where !keep.contains(canonical(f)) { try? FileManager.default.removeItem(at: f) }
     }
 
     // MARK: Drop
@@ -143,6 +162,7 @@ final class Shelf: ObservableObject, Identifiable {
 final class ShelfManager {
     static let shared = ShelfManager()
     private var panels: [UUID: ShelfPanel] = [:]
+    var lastActive: UUID?  // zuletzt angeklickt/geändert/geöffnet
     private let file: URL = {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("DropShelf")
@@ -156,6 +176,7 @@ final class ShelfManager {
             let onScreen = NSScreen.screens.contains { $0.frame.contains(r.origin) }
             open(Shelf(id: r.id, bookmarks: r.bookmarks), origin: onScreen ? r.origin : nil)
         }
+        Shelf.cleanCache(keeping: panels.values.flatMap { $0.shelf.items.map(\.url) })
         save()  // schreibt aufgeräumte Liste zurück (veraltete/fehlende Einträge)
     }
 
@@ -163,7 +184,8 @@ final class ShelfManager {
 
     private func open(_ shelf: Shelf, origin: CGPoint?) {
         let spot = origin ?? defaultOrigin()
-        shelf.onChange = { [weak self] in self?.save() }
+        lastActive = shelf.id
+        shelf.onChange = { [weak self, id = shelf.id] in self?.lastActive = id; self?.save() }
         shelf.onEmpty = { [weak self, id = shelf.id] in self?.close(id) }
         let panel = ShelfPanel(shelf: shelf, origin: spot)
         panels[shelf.id] = panel
@@ -179,10 +201,15 @@ final class ShelfManager {
 
     func close(_ id: UUID) {
         guard let panel = panels.removeValue(forKey: id) else { return }
+        if lastActive == id { lastActive = panels.keys.first }
         panel.shelf.discard()
         panel.close()
         save()
     }
+
+    var activeShelf: Shelf? { lastActive.flatMap { panels[$0]?.shelf } ?? panels.values.first?.shelf }
+
+    func purgeOrphans() { panels.values.forEach { $0.shelf.purgeOrphans() } }
 
     func save() {
         let records = panels.values.map {

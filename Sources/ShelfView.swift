@@ -6,6 +6,10 @@ struct ShelfView: View {
     @ObservedObject var shelf: Shelf
     let close: () -> Void
     @State private var targeted = false
+    static let animationDuration = 0.22
+    private var animation: Animation? {
+        NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? nil : .easeInOut(duration: Self.animationDuration)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -21,7 +25,8 @@ struct ShelfView: View {
             }
         }
         .frame(width: 200)
-        .frame(maxHeight: .infinity)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .animation(animation, value: shelf.expanded)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18))
         .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(Color.accentColor, lineWidth: targeted ? 3 : 0))
         .overlay(alignment: .topLeading) {
@@ -29,6 +34,17 @@ struct ShelfView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
                 .padding(8)
+        }
+        .overlay(alignment: .topTrailing) {
+            let reason = AirDropSender.unavailableReason(for: shelf.items.map(\.url))
+            Button { AirDropSender.shared.send(shelf: shelf, urls: shelf.items.map(\.url)) } label: {
+                Image(systemName: "dot.radiowaves.left.and.right").imageScale(.large)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .padding(8)
+            .disabled(reason != nil)
+            .help(reason ?? "Per AirDrop senden (⌃⌥A)")
         }
         .onDrop(of: [.fileURL, .image, .plainText, .url], isTargeted: $targeted) { shelf.drop($0) }
     }
@@ -71,7 +87,8 @@ struct ShelfView: View {
         .padding(.horizontal, 12)
         .frame(height: 30)
         .overlay {
-            DragOut(urls: { [item.url] }, onRemove: { shelf.remove([item.url]) }, onMoved: { shelf.remove($0) })
+            DragOut(urls: { [item.url] }, onRemove: { shelf.remove([item.url]) },
+                    onAirDrop: { AirDropSender.shared.send(shelf: shelf, urls: [item.url]) }, onMoved: { shelf.remove($0) })
         }
     }
 }

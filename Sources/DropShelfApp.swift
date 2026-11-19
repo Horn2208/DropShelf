@@ -7,9 +7,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ShelfRecord.selfCheck()
         #endif
         ShelfManager.shared.restore()
+        HotKey.shared.register()
     }
 
-    func applicationWillTerminate(_ notification: Notification) { ShelfManager.shared.save() }
+    func applicationWillTerminate(_ notification: Notification) {
+        ShelfManager.shared.save()
+        ShelfManager.shared.purgeOrphans()
+        HotKey.shared.unregister()
+    }
 }
 
 @main

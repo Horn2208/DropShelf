@@ -26,9 +26,22 @@ final class ShelfPanel: NSPanel, NSWindowDelegate {
             var f = self.frame
             f.origin.y += f.height - h  // obere Kante bleibt
             f.size.height = h
-            self.setFrame(f, display: true, animate: true)
+            if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+                self.setFrame(f, display: true)
+            } else {
+                NSAnimationContext.runAnimationGroup { c in
+                    c.duration = ShelfView.animationDuration
+                    c.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                    self.animator().setFrame(f, display: true)
+                }
+            }
         }
         contentView = NSHostingView(rootView: ShelfView(shelf: shelf) { ShelfManager.shared.close(shelf.id) })
+    }
+
+    override func sendEvent(_ event: NSEvent) {
+        if event.type == .leftMouseDown { ShelfManager.shared.lastActive = shelf.id }
+        super.sendEvent(event)
     }
 
     func windowDidMove(_ notification: Notification) { ShelfManager.shared.save() }

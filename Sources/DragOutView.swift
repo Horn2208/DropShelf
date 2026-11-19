@@ -6,11 +6,12 @@ struct DragOut: NSViewRepresentable {
     let urls: () -> [URL]
     var onClick: (() -> Void)?
     var onRemove: (() -> Void)?
+    var onAirDrop: (() -> Void)?
     let onMoved: ([URL]) -> Void
 
     func makeNSView(context: Context) -> DragOutView { DragOutView() }
     func updateNSView(_ v: DragOutView, context: Context) {
-        v.urls = urls; v.onClick = onClick; v.onRemove = onRemove; v.onMoved = onMoved
+        v.urls = urls; v.onClick = onClick; v.onRemove = onRemove; v.onAirDrop = onAirDrop; v.onMoved = onMoved
     }
 }
 
@@ -18,6 +19,7 @@ final class DragOutView: NSView, NSDraggingSource {
     var urls: () -> [URL] = { [] }
     var onClick: (() -> Void)?
     var onRemove: (() -> Void)?
+    var onAirDrop: (() -> Void)?
     var onMoved: ([URL]) -> Void = { _ in }
     private var downPoint: NSPoint?
     private var dragURLs: [URL] = []
@@ -54,10 +56,14 @@ final class DragOutView: NSView, NSDraggingSource {
     override func menu(for event: NSEvent) -> NSMenu? {
         guard onRemove != nil else { return nil }
         let m = NSMenu()
+        if onAirDrop != nil {
+            m.addItem(withTitle: "Per AirDrop senden", action: #selector(airDrop), keyEquivalent: "").target = self
+        }
         m.addItem(withTitle: "Entfernen", action: #selector(remove), keyEquivalent: "").target = self
         return m
     }
 
+    @objc private func airDrop() { onAirDrop?() }
     @objc private func remove() { onRemove?() }
 
     func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
