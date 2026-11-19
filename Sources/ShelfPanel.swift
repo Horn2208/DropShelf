@@ -25,7 +25,7 @@ final class WindowDragView: NSView {
 final class ShelfPanel: NSPanel, NSWindowDelegate {
     static let width: CGFloat = 220
     static let collapsedHeight: CGFloat = 250
-    static let expandedHeight: CGFloat = 390
+    static let detailSize = CGSize(width: 420, height: 360)
 
     let shelf: Shelf
     private let actions: ActionsPanel
@@ -48,7 +48,7 @@ final class ShelfPanel: NSPanel, NSWindowDelegate {
 
         // Echtes Glas: Effekt-View hinter dem Fenster, rund maskiert; Schatten folgt der runden Form.
         let fx = NSVisualEffectView()
-        fx.material = .hudWindow
+        fx.material = .underWindowBackground  // transparenter als .hudWindow
         fx.blendingMode = .behindWindow
         fx.state = .active
         fx.wantsLayer = true
@@ -69,22 +69,44 @@ final class ShelfPanel: NSPanel, NSWindowDelegate {
 
         expandSub = shelf.$expanded.dropFirst().sink { [weak self] open in
             guard let self else { return }
+            let size = open ? Self.detailSize : CGSize(width: Self.width, height: Self.collapsedHeight)
             var f = self.frame
-            let h = open ? Self.expandedHeight : Self.collapsedHeight
-            f.origin.y += f.height - h  // obere Kante bleibt
-            f.size.height = h
-            if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
-                self.setFrame(f, display: true)
-                self.actions.setFrame(self.actionsFrame(for: f), display: true)
-            } else {
+            f.origin.y += f.height - size.height  // obere Kante bleibt
+            f.size = size
+            f = self.clamped(f)
+            if Motion.userOn {
                 NSAnimationContext.runAnimationGroup { c in
-                    c.duration = ShelfView.animationDuration
+                    c.duration = 0.28
                     c.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
                     self.animator().setFrame(f, display: true)
                     self.actions.animator().setFrame(self.actionsFrame(for: f), display: true)
                 }
+            } else {
+                self.setFrame(f, display: true)
+                self.actions.setFrame(self.actionsFrame(for: f), display: true)
             }
         }
+    }
+
+    /// Pop beim Öffnen: Fenster fix, Inhalt federt auf, Panel blendet ein.
+    func popIn() {
+        guard Motion.userOn else { shelf.appeared = true; return }
+        alphaValue = 0
+        DispatchQueue.main.async {
+            withAnimation(Motion.pop) { self.shelf.appeared = true }
+            NSAnimationContext.runAnimationGroup { $0.duration = 0.2; self.animator().alphaValue = 1 }
+        }
+    }
+
+    /// Kurz schrumpfen + ausblenden, dann `done`.
+    func animateOut(_ done: @escaping @MainActor () -> Void) {
+        guard Motion.userOn else { done(); return }
+        withAnimation(Motion.pop) { shelf.closing = true }
+        NSAnimationContext.runAnimationGroup({ c in
+            c.duration = 0.15
+            self.animator().alphaValue = 0
+            self.actions.animator().alphaValue = 0
+        }, completionHandler: { MainActor.assumeIsolated { done() } })
     }
 
     /// Aktionsleiste: schmaler Streifen direkt unter der Ablage.
@@ -93,13 +115,18 @@ final class ShelfPanel: NSPanel, NSWindowDelegate {
                width: ActionsPanel.size.width, height: ActionsPanel.size.height)
     }
 
-    /// Hält Ablage (und Leiste darunter) im sichtbaren Bildschirmbereich.
-    func clampToScreen() {
-        let screen = NSScreen.screens.first { $0.frame.intersects(frame) } ?? NSScreen.main ?? NSScreen.screens[0]
+    /// Rahmen im sichtbaren Bildschirmbereich (Aktionsleiste darunter mitgerechnet).
+    private func clamped(_ f: NSRect) -> NSRect {
+        let screen = NSScreen.screens.first { $0.frame.intersects(f) } ?? NSScreen.main ?? NSScreen.screens[0]
         let vf = screen.visibleFrame
-        var o = frame.origin
-        o.x = min(max(o.x, vf.minX), vf.maxX - frame.width)
-        o.y = min(max(o.y, vf.minY + ActionsPanel.size.height + 2), vf.maxY - frame.height)
+        var o = f.origin
+        o.x = min(max(o.x, vf.minX), vf.maxX - f.width)
+        o.y = min(max(o.y, vf.minY + ActionsPanel.size.height + 2), vf.maxY - f.height)
+        return NSRect(origin: o, size: f.size)
+    }
+
+    func clampToScreen() {
+        let o = clamped(frame).origin
         if o != frame.origin { setFrameOrigin(o) }
     }
 

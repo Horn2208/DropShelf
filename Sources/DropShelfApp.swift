@@ -11,7 +11,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ShelfManager.shared.newShelf()
         }
         HotKey.shared.register()
+        #if DEBUG
+        debugLaunchArgs()
+        #endif
     }
+
+    #if DEBUG
+    /// Nur Debug: `-DebugSeed a:b` legt Dateien in eine Ablage, `-DebugDetail YES` öffnet die Detail-Ansicht,
+    /// `-DebugOpenSettings YES` (mit `-settingsTab perms`) öffnet die Einstellungen.
+    private func debugLaunchArgs() {
+        let d = UserDefaults.standard
+        if let seed = d.string(forKey: "DebugSeed") {
+            ShelfManager.shared.newShelf()
+            let shelf = ShelfManager.shared.activeShelf
+            seed.split(separator: ":").forEach { shelf?.add(URL(fileURLWithPath: String($0))) }
+            if d.bool(forKey: "DebugDetail") { DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { shelf?.expanded = true } }
+        }
+        if d.bool(forKey: "DebugOpenSettings") { DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { SettingsOpener.open() } }
+    }
+    #endif
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         ShelfManager.shared.newShelf()
@@ -32,6 +50,7 @@ struct DropShelfApp: App {
     var body: some Scene {
         MenuBarExtra("DropShelf", systemImage: "tray.and.arrow.down") {
             Button("Neue Ablage") { ShelfManager.shared.newShelf() }
+            Button("Einstellungen…") { SettingsOpener.open() }.keyboardShortcut(",")
             Divider()
             Button("Beenden") { NSApplication.shared.terminate(nil) }
         }

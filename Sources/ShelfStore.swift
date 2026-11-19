@@ -29,6 +29,8 @@ final class Shelf: ObservableObject, Identifiable {
     let id: UUID
     @Published private(set) var items: [Item] = []
     @Published var expanded = false
+    @Published var appeared = false  // Pop-Animation beim Öffnen
+    @Published var closing = false
     @Published private(set) var hovering = false  // Maus über Ablage oder Aktionsleiste
     private var hoverSources = Set<String>()
     private var hoverTask: Task<Void, Never>?
@@ -67,6 +69,11 @@ final class Shelf: ObservableObject, Identifiable {
             if !Task.isCancelled && self.hoverSources.isEmpty { self.hovering = false }
         }
     }
+
+    var bookmarkCount: Int { items.filter { $0.bookmark != nil }.count }
+
+    /// Vergisst gespeicherte Zugriffe (Einträge bleiben für diese Sitzung).
+    func forgetBookmarks() { for i in items.indices { items[i].bookmark = nil }; onChange?() }
 
     private static func bookmark(_ url: URL) -> Data? {
         try? url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
@@ -210,6 +217,7 @@ final class ShelfManager {
         let panel = ShelfPanel(shelf: shelf, origin: spot)
         panels[shelf.id] = panel
         panel.orderFrontRegardless()
+        panel.popIn()
         if origin == nil { save() }
     }
 
@@ -222,10 +230,13 @@ final class ShelfManager {
     func close(_ id: UUID) {
         guard let panel = panels.removeValue(forKey: id) else { return }
         if lastActive == id { lastActive = panels.keys.first }
-        panel.shelf.discard()
-        panel.close()
         save()
+        panel.animateOut { panel.shelf.discard(); panel.close() }
     }
+
+    var bookmarkCount: Int { panels.values.reduce(0) { $0 + $1.shelf.bookmarkCount } }
+
+    func resetBookmarks() { panels.values.forEach { $0.shelf.forgetBookmarks() }; save() }
 
     var activeShelf: Shelf? { lastActive.flatMap { panels[$0]?.shelf } ?? panels.values.first?.shelf }
 

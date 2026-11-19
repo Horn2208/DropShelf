@@ -76,31 +76,21 @@ final class ActionsPanel: NSPanel {
 private struct ActionsView: View {
     @ObservedObject var shelf: Shelf
     let anchor: () -> NSView?
-    @Environment(\.colorScheme) private var scheme
     private var visible: Bool { shelf.hovering && !shelf.items.isEmpty }
 
     var body: some View {
         let urls = shelf.items.map(\.url)
         HStack(spacing: 10) {
-            ForEach(ShelfAction.allCases, id: \.self) { a in
+            ForEach(Array(ShelfAction.allCases.enumerated()), id: \.element) { i, a in
                 let ok = a.canPerform(urls)
-                Button { a.run(shelf: shelf, anchor: anchor()) } label: {
-                    Image(systemName: a.symbol)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(Color.primary.opacity(0.85))
-                        .frame(width: 34, height: 34)
-                        .background(.ultraThinMaterial, in: Circle())
-                        .overlay(Circle().strokeBorder(scheme == .dark ? Color.white.opacity(0.18) : Color.black.opacity(0.12), lineWidth: 1))
-                        .opacity(ok ? 1 : 0.35)
-                }
-                .buttonStyle(.plain)
-                .disabled(!ok)
-                .help(a.help)
+                GlassCircleButton(symbol: a.symbol, size: 34, help: a.help) { a.run(shelf: shelf, anchor: anchor()) }
+                    .opacity(visible ? (ok ? 1 : 0.35) : 0)
+                    .disabled(!ok)
+                    .scaleEffect(Motion.scale(0.5, on: visible))
+                    .animation(Motion.pop.map { $0.delay(Double(i) * 0.03) }, value: visible)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .opacity(visible ? 1 : 0)
-        .animation(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? nil : .easeOut(duration: 0.2), value: visible)
-        .onHover { shelf.setHover("actions", $0) }
+                .onHover { shelf.setHover("actions", $0) }
     }
 }

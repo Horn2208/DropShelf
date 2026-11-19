@@ -59,11 +59,13 @@ final class DragOutView: NSView, NSDraggingSource {
         if onAirDrop != nil {
             m.addItem(withTitle: "Per AirDrop senden", action: #selector(airDrop), keyEquivalent: "").target = self
         }
+        m.addItem(withTitle: "Im Finder zeigen", action: #selector(reveal), keyEquivalent: "").target = self
         m.addItem(withTitle: "Entfernen", action: #selector(remove), keyEquivalent: "").target = self
         return m
     }
 
     @objc private func airDrop() { onAirDrop?() }
+    @objc private func reveal() { NSWorkspace.shared.activateFileViewerSelecting(urls()) }
     @objc private func remove() { onRemove?() }
 
     func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {

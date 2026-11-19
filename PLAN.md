@@ -61,6 +61,8 @@ macOS-App für eine schwebende Ablage (ähnlich wie Dropover, aber selbst gebaut
 > - Animationen kurz (0,2–0,25 s), Federn ohne Überschwingen; „Bewegung reduzieren“ beachten.
 > - Danach bauen, kurz starten, Screenshot des Fensters mit `screencapture -l <windowID>` machen und prüfen, ob alles ruhig und aufgeräumt wirkt.
 
+> **Nachtrag Phase 5:** Glas maximal (transparenteres Material, leichte Tönung, per Einstellung regelbar), Pop-Animationen (Öffnen, Schließen, Ablegen, Aktionsreihe, Hover) und eine Detail-Ansicht (Raster/Liste, Sortierung, Größe • Pixelmaße) ersetzen die alte Liste.
+
 ## Phase 6 – Ablage beim Schütteln öffnen
 > Wenn man beim Ziehen einer Datei die Maus schüttelt (mehrere schnelle Richtungswechsel innerhalb von ca. 0,5 s), öffnet sich an der Mausposition eine neue Ablage. Erkenne das über einen globalen `NSEvent`-Monitor für `.leftMouseDragged`. Die Empfindlichkeit lässt sich in den Einstellungen anpassen. Benötigte Berechtigungen fragt die App mit einer verständlichen Erklärung ab.
 
@@ -68,6 +70,8 @@ macOS-App für eine schwebende Ablage (ähnlich wie Dropover, aber selbst gebaut
 > Füge der Ablage ein Aktionsmenü hinzu: Quick-Look-Vorschau (Leertaste), „Teilen…“ (`NSSharingServicePicker`), „Als ZIP komprimieren“ (`/usr/bin/ditto -c -k`), „Im Finder zeigen“ und „Pfade kopieren“.
 
 ## Phase 8 – Einstellungen und Feinschliff
+> **Bereits vorgezogen:** Einstellungsfenster inkl. Tabs Allgemein, Kürzel (An/Aus), Aussehen, Berechtigungen (Status-Übersicht) und Über. Offen: Schüttel-Empfindlichkeit, Kürzel-Rekorder, Release/Icon/README.
+>
 > Baue ein Einstellungsfenster (`Settings`-Szene, Werte per `@AppStorage`) für Schüttel-Empfindlichkeit, Tastenkürzel, automatisches Schließen, Rückfrage nach AirDrop und Start bei der Anmeldung (`SMAppService`). Ergänze Animationen beim Ablegen und Entfernen sowie die Unterstützung für „Bewegung reduzieren“. Am Ende: Release-Build, App-Symbol, README.
 
 ---
