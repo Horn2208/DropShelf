@@ -82,6 +82,7 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
 
     /// Pop beim Öffnen: Fenster fix, Inhalt federt auf, Panel blendet ein.
     func popIn() {
+        FunEffects.onPop(screen: screen)
         guard Motion.userOn else { shelf.appeared = true; return }
         alphaValue = 0
         DispatchQueue.main.async {

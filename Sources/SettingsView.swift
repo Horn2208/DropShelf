@@ -246,6 +246,10 @@ private struct ShortcutRecorder: View {
 private struct AppearanceTab: View {
     @AppStorage("glassIntensity") private var glass = 0.4
     @AppStorage("animationsEnabled") private var anim = true
+    @AppStorage("funSoundEnabled") private var soundOn = false
+    @AppStorage("funSoundPath") private var soundPath = ""
+    @AppStorage("funImageEnabled") private var imageOn = false
+    @AppStorage("funImagePath") private var imagePath = ""
 
     var body: some View {
         Form {
@@ -257,6 +261,27 @@ private struct AppearanceTab: View {
                 Toggle("Animationen", isOn: $anim)
                 Text("„Bewegung reduzieren“ in den Systemeinstellungen wird zusätzlich beachtet (nur Einblenden).")
                     .font(.caption).foregroundStyle(.secondary)
+            }
+            Section("Spaß") {
+                Toggle("Sound beim Aufploppen", isOn: $soundOn)
+                HStack {
+                    Text(soundPath.isEmpty ? "Kein Sound gewählt" : (soundPath as NSString).lastPathComponent)
+                        .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                    Spacer()
+                    Button("Sound wählen…") { FunEffects.pick(.audio, prefix: "sound", key: "funSoundPath") }
+                    Button("Vorhören") { FunEffects.playSound() }.disabled(soundPath.isEmpty)
+                    Button("Entfernen") { FunEffects.remove(prefix: "sound", key: "funSoundPath") }.disabled(soundPath.isEmpty)
+                }
+                Toggle("Bild beim Aufploppen einblenden", isOn: $imageOn)
+                Text("Vorsicht bei Lichtempfindlichkeit.").font(.caption).foregroundStyle(.secondary)
+                HStack {
+                    Text(imagePath.isEmpty ? "Kein Bild gewählt" : (imagePath as NSString).lastPathComponent)
+                        .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                    Spacer()
+                    Button("Bild wählen…") { FunEffects.pick(.image, prefix: "image", key: "funImagePath") }
+                    Button("Vorschau") { FunEffects.flash(on: NSScreen.main) }.disabled(imagePath.isEmpty)
+                    Button("Entfernen") { FunEffects.remove(prefix: "image", key: "funImagePath") }.disabled(imagePath.isEmpty)
+                }
             }
         }
         .formStyle(.grouped)
