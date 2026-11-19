@@ -2,7 +2,7 @@ import AppKit
 import Carbon
 
 /// Globale Tastenkürzel ⌃⌥A (AirDrop), ⌃⌥Space (neue Ablage an der Maus) und ⌃⌥V (Verlauf) (Carbon, braucht keine Bedienungshilfen-Berechtigung).
-/// Je Kürzel per UserDefaults abschaltbar (`hotkeyAirDropEnabled`, `hotkeyShelfEnabled`, `hotkeyHistoryEnabled`); `sync()` gleicht an.
+/// Kürzel frei belegbar (Einstellungen › Kürzel). Je Kürzel per UserDefaults abschaltbar (`hotkeyAirDropEnabled`, `hotkeyShelfEnabled`, `hotkeyHistoryEnabled`); `sync()` gleicht an.
 @MainActor
 final class HotKey {
     static let shared = HotKey()
@@ -10,6 +10,17 @@ final class HotKey {
     private var handler: EventHandlerRef?
     private let keys: [(id: UInt32, code: Int, pref: String)] = [
         (1, kVK_ANSI_A, "hotkeyAirDropEnabled"), (2, kVK_Space, "hotkeyShelfEnabled"), (3, kVK_ANSI_V, "hotkeyHistoryEnabled")]
+
+    /// Gespeichertes Kürzel (`hotkeyCode<id>`/`hotkeyMods<id>`, Carbon-Modifier) oder Standard (⌃⌥ + Taste).
+    static func defaultCombo(_ id: UInt32) -> (code: Int, mods: Int) {
+        ([1: kVK_ANSI_A, 2: kVK_Space, 3: kVK_ANSI_V][Int(id)] ?? 0, controlKey | optionKey)
+    }
+
+    static func combo(_ id: UInt32) -> (code: Int, mods: Int) {
+        let d = UserDefaults.standard
+        guard d.object(forKey: "hotkeyCode\(id)") != nil else { return defaultCombo(id) }
+        return (d.integer(forKey: "hotkeyCode\(id)"), d.integer(forKey: "hotkeyMods\(id)"))
+    }
 
     func register() {
         if handler == nil {
@@ -33,17 +44,14 @@ final class HotKey {
     }
 
     func sync() {
-        for k in keys {
-            let on = UserDefaults.standard.object(forKey: k.pref) as? Bool ?? true
-            if on, refs[k.id] == nil {
-                var ref: EventHotKeyRef?
-                RegisterEventHotKey(UInt32(k.code), UInt32(controlKey | optionKey),
-                                    EventHotKeyID(signature: OSType(0x44534846), id: k.id),
-                                    GetApplicationEventTarget(), 0, &ref)
-                refs[k.id] = ref
-            } else if !on, let ref = refs.removeValue(forKey: k.id) {
-                UnregisterEventHotKey(ref)
-            }
+        refs.values.forEach { UnregisterEventHotKey($0) }  // erst alte freigeben, dann neu (Kürzel können sich geändert haben)
+        refs = [:]
+        for k in keys where UserDefaults.standard.object(forKey: k.pref) as? Bool ?? true {
+            let c = Self.combo(k.id)
+            var ref: EventHotKeyRef?
+            RegisterEventHotKey(UInt32(c.code), UInt32(c.mods), EventHotKeyID(signature: OSType(0x44534846), id: k.id),
+                                GetApplicationEventTarget(), 0, &ref)
+            refs[k.id] = ref
         }
     }
 

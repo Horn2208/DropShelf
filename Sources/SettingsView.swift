@@ -1,4 +1,5 @@
 import ApplicationServices
+import Carbon
 import IOKit.hid
 import ServiceManagement
 import SwiftUI
@@ -138,10 +139,10 @@ private struct ShortcutsTab: View {
     var body: some View {
         Form {
             Section {
-                Toggle(isOn: $shelfOn) { row("Neue Ablage an der Maus", "⌃⌥Space") }
-                Toggle(isOn: $airOn) { row("Aktive Ablage per AirDrop senden", "⌃⌥A") }
-                Toggle(isOn: $histOn) { row("Verlauf öffnen", "⌃⌥V") }
-            } footer: { Text("Eigene Kürzel festlegen folgt später.") }
+                Toggle(isOn: $shelfOn) { row("Neue Ablage an der Maus", 2) }
+                Toggle(isOn: $airOn) { row("Aktive Ablage per AirDrop senden", 1) }
+                Toggle(isOn: $histOn) { row("Verlauf öffnen", 3) }
+            } footer: { Text("Zum Ändern das Feld anklicken und das neue Kürzel drücken (mindestens ⌃, ⌥ oder ⌘). Esc bricht ab.") }
             Section {
                 Toggle("Schütteln erkennen", isOn: $shakeOn)
                 VStack(alignment: .leading) {
@@ -163,8 +164,82 @@ private struct ShortcutsTab: View {
         }
     }
 
-    private func row(_ title: String, _ keys: String) -> some View {
-        HStack { Text(title); Spacer(); Text(keys).font(.system(.body, design: .rounded)).foregroundStyle(.secondary) }
+    private func row(_ title: String, _ id: UInt32) -> some View {
+        HStack { Text(title); Spacer(); ShortcutRecorder(id: id) }
+    }
+}
+
+/// Zeigt das Kürzel als Symbole; Klick startet die Aufnahme (nächster Tastendruck mit ⌃/⌥/⌘, Esc bricht ab).
+private struct ShortcutRecorder: View {
+    let id: UInt32
+    @State private var combo: (code: Int, mods: Int)
+    @State private var recording = false
+    @State private var monitor: Any?
+
+    init(id: UInt32) { self.id = id; _combo = State(initialValue: HotKey.combo(id)) }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Button(recording ? "Kürzel drücken …" : Self.label(combo)) { recording ? stop() : start() }
+                .font(.system(.body, design: .rounded)).frame(minWidth: 110)
+            Button { save(HotKey.defaultCombo(id)) } label: { Image(systemName: "arrow.counterclockwise") }
+                .buttonStyle(.borderless).help("Auf Standard zurücksetzen")
+        }
+        .onDisappear(perform: stop)
+    }
+
+    private func start() {
+        recording = true
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { e in
+            if e.keyCode == 53 { stop(); return nil }  // Esc
+            let m = e.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            guard m.contains(.control) || m.contains(.option) || m.contains(.command) else { NSSound.beep(); return nil }
+            var carbon = 0
+            if m.contains(.control) { carbon |= controlKey }
+            if m.contains(.option) { carbon |= optionKey }
+            if m.contains(.shift) { carbon |= shiftKey }
+            if m.contains(.command) { carbon |= cmdKey }
+            save((Int(e.keyCode), carbon))
+            return nil
+        }
+    }
+
+    private func stop() {
+        recording = false
+        if let monitor { NSEvent.removeMonitor(monitor) }
+        monitor = nil
+    }
+
+    private func save(_ c: (code: Int, mods: Int)) {
+        stop()
+        combo = c
+        UserDefaults.standard.set(c.code, forKey: "hotkeyCode\(id)")
+        UserDefaults.standard.set(c.mods, forKey: "hotkeyMods\(id)")
+        HotKey.shared.sync()
+    }
+
+    static func label(_ c: (code: Int, mods: Int)) -> String {
+        (c.mods & controlKey != 0 ? "⌃" : "") + (c.mods & optionKey != 0 ? "⌥" : "")
+            + (c.mods & shiftKey != 0 ? "⇧" : "") + (c.mods & cmdKey != 0 ? "⌘" : "") + keyName(c.code)
+    }
+
+    /// Tastenname über das aktuelle Tastaturlayout; Sondertasten fest.
+    private static func keyName(_ code: Int) -> String {
+        let special: [Int: String] = [kVK_Space: "Space", kVK_Return: "↩", kVK_Tab: "⇥", kVK_Delete: "⌫", kVK_ForwardDelete: "⌦",
+            kVK_LeftArrow: "←", kVK_RightArrow: "→", kVK_UpArrow: "↑", kVK_DownArrow: "↓", kVK_Home: "↖", kVK_End: "↘",
+            kVK_PageUp: "⇞", kVK_PageDown: "⇟", kVK_F1: "F1", kVK_F2: "F2", kVK_F3: "F3", kVK_F4: "F4", kVK_F5: "F5",
+            kVK_F6: "F6", kVK_F7: "F7", kVK_F8: "F8", kVK_F9: "F9", kVK_F10: "F10", kVK_F11: "F11", kVK_F12: "F12"]
+        if let s = special[code] { return s }
+        guard let src = TISCopyCurrentASCIICapableKeyboardLayoutInputSource()?.takeRetainedValue(),
+              let ptr = TISGetInputSourceProperty(src, kTISPropertyUnicodeKeyLayoutData) else { return "Taste \(code)" }
+        let layout = unsafeBitCast(ptr, to: CFData.self)
+        var dead: UInt32 = 0, len = 0
+        var chars = [UniChar](repeating: 0, count: 4)
+        let ok = CFDataGetBytePtr(layout).withMemoryRebound(to: UCKeyboardLayout.self, capacity: 1) {
+            UCKeyTranslate($0, UInt16(code), UInt16(kUCKeyActionDisplay), 0, UInt32(LMGetKbdType()),
+                           OptionBits(kUCKeyTranslateNoDeadKeysBit), &dead, 4, &len, &chars)
+        }
+        return ok == noErr && len > 0 ? String(utf16CodeUnits: chars, count: len).uppercased() : "Taste \(code)"
     }
 }
 
