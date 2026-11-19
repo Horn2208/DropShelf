@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		3D9E2E697360DD20E62CA0D1 /* Glass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834B52418C08BA9A4A1C1A57 /* Glass.swift */; };
 		4103671F8B28887C8A6465AC /* History.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD6CBCB085D4DADCAA48184 /* History.swift */; };
+		43F93387EB943470CA1F6218 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE810BB12920FF0A67E1BA87 /* Assets.xcassets */; };
 		5A6B749F34F9295245C3D1E7 /* DetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F8C49819561928CB7E089AD /* DetailView.swift */; };
 		5FD93AF5845C480ED43BB09F /* DragOutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93E26FA53FBA96D20AFA0C78 /* DragOutView.swift */; };
 		693D05C81ADDC1D2AC5AD186 /* DropShelfApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C326692C1F9E863BE47A1ED0 /* DropShelfApp.swift */; };
@@ -39,11 +40,20 @@
 		AAD6CBCB085D4DADCAA48184 /* History.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = History.swift; sourceTree = "<group>"; };
 		C326692C1F9E863BE47A1ED0 /* DropShelfApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropShelfApp.swift; sourceTree = "<group>"; };
 		CA6CA8D7CD0F04FDBBC91BD4 /* ActionsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsPanel.swift; sourceTree = "<group>"; };
+		CE810BB12920FF0A67E1BA87 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CFBC993DF6C34EFD9F0CE718 /* ShelfView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfView.swift; sourceTree = "<group>"; };
 		D1D2B08962DB1244729A6DEF /* HistoryPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryPanel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		18F1C0D2EBB2436504CB08A1 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				CE810BB12920FF0A67E1BA87 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		2DEE7B30CA71C4831092DDEE /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -77,6 +87,7 @@
 		FBB1F7A0EA4112F12CAD963D = {
 			isa = PBXGroup;
 			children = (
+				18F1C0D2EBB2436504CB08A1 /* Resources */,
 				EBE9F70094D07B3FEFD0231F /* Sources */,
 				2DEE7B30CA71C4831092DDEE /* Products */,
 			);
@@ -90,6 +101,7 @@
 			buildConfigurationList = F9DAB739C06ED864161A4022 /* Build configuration list for PBXNativeTarget "DropShelf" */;
 			buildPhases = (
 				66C749F91DE642A83E18347F /* Sources */,
+				17A72E1F57437BDDF2D05438 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -134,6 +146,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		17A72E1F57437BDDF2D05438 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				43F93387EB943470CA1F6218 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		66C749F91DE642A83E18347F /* Sources */ = {
