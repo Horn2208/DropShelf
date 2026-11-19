@@ -11,6 +11,7 @@
 		693D05C81ADDC1D2AC5AD186 /* DropShelfApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C326692C1F9E863BE47A1ED0 /* DropShelfApp.swift */; };
 		7DC410A0CC6B97A67DB5ECC6 /* ShelfView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFBC993DF6C34EFD9F0CE718 /* ShelfView.swift */; };
 		8A1FA6E994B3A67CF2171561 /* ShelfPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A9C0937FE4AFE7C9BFFB658 /* ShelfPanel.swift */; };
+		B2B438EE35917AEA78B9BED3 /* ActionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA6CA8D7CD0F04FDBBC91BD4 /* ActionsPanel.swift */; };
 		BFEB99C9D98DA604EE9AC1FB /* ShelfStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F4E26B13F44FFC2D7F1CA8D /* ShelfStore.swift */; };
 		C88FF234230427DBA260D678 /* AirDropSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67ED42389CECE2EDBF165D46 /* AirDropSender.swift */; };
 		CF160FDE246D2C50F05D34DD /* HotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198BAAE92DAB36DD31BE5869 /* HotKey.swift */; };
@@ -24,6 +25,7 @@
 		6F4E26B13F44FFC2D7F1CA8D /* ShelfStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfStore.swift; sourceTree = "<group>"; };
 		93E26FA53FBA96D20AFA0C78 /* DragOutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragOutView.swift; sourceTree = "<group>"; };
 		C326692C1F9E863BE47A1ED0 /* DropShelfApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropShelfApp.swift; sourceTree = "<group>"; };
+		CA6CA8D7CD0F04FDBBC91BD4 /* ActionsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsPanel.swift; sourceTree = "<group>"; };
 		CFBC993DF6C34EFD9F0CE718 /* ShelfView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -39,6 +41,7 @@
 		EBE9F70094D07B3FEFD0231F /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				CA6CA8D7CD0F04FDBBC91BD4 /* ActionsPanel.swift */,
 				67ED42389CECE2EDBF165D46 /* AirDropSender.swift */,
 				93E26FA53FBA96D20AFA0C78 /* DragOutView.swift */,
 				C326692C1F9E863BE47A1ED0 /* DropShelfApp.swift */,
@@ -116,6 +119,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B2B438EE35917AEA78B9BED3 /* ActionsPanel.swift in Sources */,
 				C88FF234230427DBA260D678 /* AirDropSender.swift in Sources */,
 				5FD93AF5845C480ED43BB09F /* DragOutView.swift in Sources */,
 				693D05C81ADDC1D2AC5AD186 /* DropShelfApp.swift in Sources */,

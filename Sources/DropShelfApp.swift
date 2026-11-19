@@ -7,7 +7,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ShelfRecord.selfCheck()
         #endif
         ShelfManager.shared.restore()
+        if ShelfManager.shared.isEmpty && UserDefaults.standard.object(forKey: "openShelfOnLaunch") as? Bool ?? true {
+            ShelfManager.shared.newShelf()
+        }
         HotKey.shared.register()
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        ShelfManager.shared.newShelf()
+        return false
     }
 
     func applicationWillTerminate(_ notification: Notification) {

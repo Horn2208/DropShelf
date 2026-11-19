@@ -1,28 +1,38 @@
 import AppKit
 import Carbon
 
-/// Globales Tastenkürzel ⌃⌥A (Carbon, braucht keine Bedienungshilfen-Berechtigung).
+/// Globales Tastenkürzel ⌃⌥A (AirDrop) und ⌃⌥Space (neue Ablage an der Maus) (Carbon, braucht keine Bedienungshilfen-Berechtigung).
 @MainActor
 final class HotKey {
     static let shared = HotKey()
-    private var ref: EventHotKeyRef?
+    private var refs: [EventHotKeyRef] = []
     private var handler: EventHandlerRef?
 
     func register() {
-        guard ref == nil else { return }
+        guard refs.isEmpty else { return }
         var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
-        InstallEventHandler(GetApplicationEventTarget(), { _, _, _ in
-            Task { @MainActor in AirDropSender.shared.sendActiveShelf() }
+        InstallEventHandler(GetApplicationEventTarget(), { _, event, _ in
+            var hk = EventHotKeyID()
+            GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID),
+                              nil, MemoryLayout<EventHotKeyID>.size, nil, &hk)
+            let id = hk.id
+            Task { @MainActor in
+                if id == 1 { AirDropSender.shared.sendActiveShelf() } else { ShelfManager.shared.newShelf(at: NSEvent.mouseLocation) }
+            }
             return noErr
         }, 1, &spec, nil, &handler)
-        RegisterEventHotKey(UInt32(kVK_ANSI_A), UInt32(controlKey | optionKey),
-                            EventHotKeyID(signature: OSType(0x44534846), id: 1),
-                            GetApplicationEventTarget(), 0, &ref)
+        for (id, key) in [(UInt32(1), kVK_ANSI_A), (2, kVK_Space)] {
+            var ref: EventHotKeyRef?
+            RegisterEventHotKey(UInt32(key), UInt32(controlKey | optionKey),
+                                EventHotKeyID(signature: OSType(0x44534846), id: id),
+                                GetApplicationEventTarget(), 0, &ref)
+            if let ref { refs.append(ref) }
+        }
     }
 
     func unregister() {
-        if let ref { UnregisterEventHotKey(ref) }
+        refs.forEach { UnregisterEventHotKey($0) }
         if let handler { RemoveEventHandler(handler) }
-        ref = nil; handler = nil
+        refs = []; handler = nil
     }
 }

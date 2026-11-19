@@ -29,6 +29,9 @@ final class Shelf: ObservableObject, Identifiable {
     let id: UUID
     @Published private(set) var items: [Item] = []
     @Published var expanded = false
+    @Published private(set) var hovering = false  // Maus über Ablage oder Aktionsleiste
+    private var hoverSources = Set<String>()
+    private var hoverTask: Task<Void, Never>?
     var onChange: (() -> Void)?
     var onEmpty: (() -> Void)?
     private var scoped: [URL] = []
@@ -50,6 +53,18 @@ final class Shelf: ObservableObject, Identifiable {
             }
             if started { scoped.append(url) }
             items.append(Item(url: url, bookmark: stale ? Self.bookmark(url) : data))
+        }
+    }
+
+    /// Hover von mehreren Fenstern (Ablage + Aktionsleiste); Ausblenden leicht verzögert gegen Flackern.
+    func setHover(_ key: String, _ on: Bool) {
+        hoverTask?.cancel()
+        if on { hoverSources.insert(key); hovering = true; return }
+        hoverSources.remove(key)
+        guard hoverSources.isEmpty else { return }
+        hoverTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            if !Task.isCancelled && self.hoverSources.isEmpty { self.hovering = false }
         }
     }
 
@@ -180,7 +195,12 @@ final class ShelfManager {
         save()  // schreibt aufgeräumte Liste zurück (veraltete/fehlende Einträge)
     }
 
-    func newShelf() { open(Shelf(), origin: nil) }
+    var isEmpty: Bool { panels.isEmpty }
+
+    /// Neue Ablage; mit `mouse` erscheint sie dort (Mauszeiger oben mittig), sonst oben rechts.
+    func newShelf(at mouse: CGPoint? = nil) {
+        open(Shelf(), origin: mouse.map { CGPoint(x: $0.x - ShelfPanel.width / 2, y: $0.y - ShelfPanel.collapsedHeight + 40) })
+    }
 
     private func open(_ shelf: Shelf, origin: CGPoint?) {
         let spot = origin ?? defaultOrigin()
@@ -196,7 +216,7 @@ final class ShelfManager {
     private func defaultOrigin() -> CGPoint {
         let vf = (NSScreen.main ?? NSScreen.screens[0]).visibleFrame
         let n = CGFloat(panels.count % 8) * 24
-        return CGPoint(x: vf.maxX - 220 - n, y: vf.maxY - 240 - n)
+        return CGPoint(x: vf.maxX - ShelfPanel.width - 20 - n, y: vf.maxY - ShelfPanel.collapsedHeight - 20 - n)
     }
 
     func close(_ id: UUID) {
