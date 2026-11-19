@@ -33,14 +33,14 @@ macOS-App für eine schwebende Ablage (ähnlich wie Dropover, aber selbst gebaut
 > - Erneutes Öffnen der App (Doppelklick im Finder, `applicationShouldHandleReopen`) öffnet ebenfalls eine Ablage.
 >
 > **Fenster:**
-> - Etwas größer (ca. 220×250), große Eckenradien (~26 pt, `.continuous`), dunkles Material (`NSVisualEffectView` `.hudWindow`, `.behindWindow`), feine 0,5-pt-Kontur in Weiß mit ~10 % Deckkraft, weicher Schatten.
+> - Etwas größer (ca. 220×250), große Eckenradien (~26 pt, `.continuous`) – auch das Panel selbst/die Schattenform rund, keine eckigen Ränder sichtbar. Hintergrund **helleres Grau** statt fast Schwarz: Material `.hudWindow` plus darübergelegtes Grau (z. B. `Color(white: 0.28)` mit ~70 % Deckkraft im Dunkelmodus, `Color(white: 0.92)` im Hellmodus). **Deutlich sichtbare hellere Umrandung:** 1-pt-Kontur in Weiß ~22 % (Hellmodus Schwarz ~12 %), innen liegend (`strokeBorder`), weicher Schatten.
 > - Oben mittig ein kleiner Griff (36×5 pt, Kapsel, Weiß ~25 %) als Hinweis zum Verschieben.
 > - **Verschieben:** Das Fenster lässt sich zuverlässig verschieben – am Griff, an jedem freien Hintergrundbereich und an der Leer-Ansicht. Umsetzung: eigene kleine NSView für diese Bereiche, die in `mouseDown` `window?.performDrag(with: event)` aufruft (nicht nur `isMovableByWindowBackground`, da SwiftUI-/NSHostingView-Inhalt die Ereignisse sonst schluckt). Ziehen auf der Vorschau bzw. den Listenzeilen zieht weiterhin Dateien heraus (bestehende `DragOutView`), Knöpfe bleiben klickbar. Fenster bleibt dabei innerhalb des sichtbaren Bildschirms; die neue Position wird wie bisher gespeichert. Mauszeiger über Griff/Hintergrund: `NSCursor.openHand`, beim Ziehen `closedHand`.
 > - Oben links ein runder Schließen-Knopf, oben rechts ein runder Aufklapp-Knopf (Chevron). Beide 28 pt, Kreis mit Weiß ~12 % Hintergrund, SF Symbol in Weiß ~80 %, Hover leicht heller.
 >
 > **Inhalt:**
-> - Mitte: Vorschau des Stapels, groß und ruhig – ein einzelnes Dokument ohne Rotation, bei mehreren Dateien nur ein dezenter Versatz (2–3 pt, keine Rotation), weicher Schatten, Ecken 6 pt.
-> - Unten: eine Kapsel mit dem Dateinamen (bei mehreren: „3 Dateien“), abgeschnitten in der Mitte (`truncationMode(.middle)`), mit kleinem Chevron rechts zum Aufklappen. Keine separate Zähler-Badge mehr.
+> - Mitte: Vorschau des Stapels, groß und ruhig – **keine Rotation**, ein einzelnes Dokument gerade; bei mehreren Dateien nur ein dezenter Versatz (2–3 pt). Vorschaubilder mit **abgerundeten Ecken (8 pt, `.continuous`)**, per `clipShape`, dünner heller Rand (0,5 pt Weiß ~15 %) und weicher Schatten. Die blaue Zähler-Plakette entfällt komplett.
+> - **Unter der Vorschau** (mit 10 pt Abstand, mittig): eine Kapsel mit dem Dateinamen (bei mehreren: „3 Dateien“), abgeschnitten in der Mitte (`truncationMode(.middle)`), mit kleinem Chevron rechts zum Aufklappen. Keine separate Zähler-Badge mehr.
 > - Leere Ablage: nur zentriert ein SF Symbol (`tray.and.arrow.down`, hell, groß, dünne Strichstärke) und darunter „Dateien hierher ziehen“ in sekundärer Farbe.
 > - Beim Drüberziehen: Kontur wird zur Akzentfarbe, Inhalt skaliert minimal (1,03) mit sanfter Feder; bei „Bewegung reduzieren“ nur Farbwechsel.
 >
