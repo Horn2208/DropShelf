@@ -72,6 +72,8 @@ macOS-App für eine schwebende Ablage (ähnlich wie Dropover, aber selbst gebaut
 ## Phase 8 – Einstellungen und Feinschliff
 > **Bereits vorgezogen:** Einstellungsfenster inkl. Tabs Allgemein, Kürzel (An/Aus), Aussehen, Berechtigungen (Status-Übersicht) und Über. Offen: Schüttel-Empfindlichkeit, Kürzel-Rekorder, Release/Icon/README.
 >
+> **Phase 8 erledigt:** Kürzel-Rekorder, Start bei Anmeldung, Auto-Schließen/AirDrop-Rückfrage/Schüttel-Empfindlichkeit, Bewegung reduzieren, App-Symbol (`scripts/make-icon.swift`), README, Release-Build.
+>
 > Baue ein Einstellungsfenster (`Settings`-Szene, Werte per `@AppStorage`) für Schüttel-Empfindlichkeit, Tastenkürzel, automatisches Schließen, Rückfrage nach AirDrop und Start bei der Anmeldung (`SMAppService`). Ergänze Animationen beim Ablegen und Entfernen sowie die Unterstützung für „Bewegung reduzieren“. Am Ende: Release-Build, App-Symbol, README.
 
 ---
