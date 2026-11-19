@@ -1,9 +1,11 @@
 import AppKit
+import Combine
 import SwiftUI
 
 @MainActor
 final class ShelfPanel: NSPanel, NSWindowDelegate {
     let shelf: Shelf
+    private var expandSub: AnyCancellable?
 
     init(shelf: Shelf, origin: CGPoint) {
         self.shelf = shelf
@@ -18,6 +20,14 @@ final class ShelfPanel: NSPanel, NSWindowDelegate {
         backgroundColor = .clear
         hasShadow = true
         delegate = self
+        expandSub = shelf.$expanded.dropFirst().sink { [weak self] open in
+            guard let self else { return }
+            let h: CGFloat = open ? 360 : 220
+            var f = self.frame
+            f.origin.y += f.height - h  // obere Kante bleibt
+            f.size.height = h
+            self.setFrame(f, display: true, animate: true)
+        }
         contentView = NSHostingView(rootView: ShelfView(shelf: shelf) { ShelfManager.shared.close(shelf.id) })
     }
 

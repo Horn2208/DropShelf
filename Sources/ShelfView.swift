@@ -8,31 +8,20 @@ struct ShelfView: View {
     @State private var targeted = false
 
     var body: some View {
-        ZStack {
-            if shelf.items.isEmpty {
-                Text("Dateien hierher ziehen")
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding()
-            } else {
-                ZStack {
-                    ForEach(Array(shelf.items.suffix(3).enumerated()), id: \.element.id) { i, item in
-                        Thumb(url: item.url)
-                            .rotationEffect(.degrees(Double(i - 1) * 6))
-                            .offset(x: CGFloat(i - 1) * 8, y: CGFloat(i - 1) * -5)
+        VStack(spacing: 0) {
+            stack
+                .frame(maxWidth: .infinity, maxHeight: shelf.expanded ? 130 : .infinity)
+            if shelf.expanded {
+                Divider()
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(shelf.items) { item in row(item) }
                     }
-                }
-                .overlay(alignment: .bottomTrailing) {
-                    Text("\(shelf.items.count)")
-                        .font(.caption.bold())
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 8).padding(.vertical, 2)
-                        .background(Color.accentColor, in: Capsule())
-                        .offset(x: 14, y: 14)
                 }
             }
         }
-        .frame(width: 200, height: 220)
+        .frame(width: 200)
+        .frame(maxHeight: .infinity)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18))
         .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(Color.accentColor, lineWidth: targeted ? 3 : 0))
         .overlay(alignment: .topLeading) {
@@ -42,6 +31,48 @@ struct ShelfView: View {
                 .padding(8)
         }
         .onDrop(of: [.fileURL, .image, .plainText, .url], isTargeted: $targeted) { shelf.drop($0) }
+    }
+
+    @ViewBuilder private var stack: some View {
+        if shelf.items.isEmpty {
+            Text("Dateien hierher ziehen")
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding()
+        } else {
+            ZStack {
+                ForEach(Array(shelf.items.suffix(3).enumerated()), id: \.element.id) { i, item in
+                    Thumb(url: item.url)
+                        .rotationEffect(.degrees(Double(i - 1) * 6))
+                        .offset(x: CGFloat(i - 1) * 8, y: CGFloat(i - 1) * -5)
+                }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                Text("\(shelf.items.count)")
+                    .font(.caption.bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8).padding(.vertical, 2)
+                    .background(Color.accentColor, in: Capsule())
+                    .offset(x: 14, y: 14)
+            }
+            .overlay {
+                DragOut(urls: { shelf.items.map(\.url) }, onClick: { shelf.expanded.toggle() },
+                        onMoved: { shelf.remove($0) })
+            }
+        }
+    }
+
+    private func row(_ item: Shelf.Item) -> some View {
+        HStack(spacing: 8) {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: item.url.path)).resizable().frame(width: 22, height: 22)
+            Text(item.url.lastPathComponent).lineLimit(1).truncationMode(.middle)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 30)
+        .overlay {
+            DragOut(urls: { [item.url] }, onRemove: { shelf.remove([item.url]) }, onMoved: { shelf.remove($0) })
+        }
     }
 }
 

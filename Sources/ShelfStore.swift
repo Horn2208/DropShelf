@@ -28,8 +28,11 @@ final class Shelf: ObservableObject, Identifiable {
 
     let id: UUID
     @Published private(set) var items: [Item] = []
+    @Published var expanded = false
     var onChange: (() -> Void)?
+    var onEmpty: (() -> Void)?
     private var scoped: [URL] = []
+    private var orphans: [URL] = []  // entfernte Cache-Dateien, Empfänger liest evtl. noch – erst in discard() löschen
 
     nonisolated static let cacheDir: URL = FileManager.default
         .urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent("DropShelf")
@@ -62,14 +65,27 @@ final class Shelf: ObservableObject, Identifiable {
         onChange?()
     }
 
+    func remove(_ urls: [URL]) {
+        let gone = items.filter { urls.contains($0.url) }
+        guard !gone.isEmpty else { return }
+        items.removeAll { urls.contains($0.url) }
+        orphans += gone.map(\.url).filter { $0.path.hasPrefix(Self.cacheDir.path) }
+        // Scopes bleiben bis discard() offen, damit der Empfänger noch lesen kann.
+        if items.isEmpty { expanded = false }
+        onChange?()
+        let auto = UserDefaults.standard.object(forKey: "autoCloseWhenEmpty") as? Bool ?? true
+        if items.isEmpty && auto { Task { @MainActor in self.onEmpty?() } }
+    }
+
     /// Gibt Zugriffe frei und löscht selbst erzeugte Cache-Dateien.
     func discard() {
         scoped.forEach { $0.stopAccessingSecurityScopedResource() }
         scoped = []
-        for item in items where item.url.path.hasPrefix(Self.cacheDir.path) {
-            try? FileManager.default.removeItem(at: item.url)
+        for url in items.map(\.url) + orphans where url.path.hasPrefix(Self.cacheDir.path) {
+            try? FileManager.default.removeItem(at: url)
         }
         items = []
+        orphans = []
     }
 
     // MARK: Drop
@@ -148,6 +164,7 @@ final class ShelfManager {
     private func open(_ shelf: Shelf, origin: CGPoint?) {
         let spot = origin ?? defaultOrigin()
         shelf.onChange = { [weak self] in self?.save() }
+        shelf.onEmpty = { [weak self, id = shelf.id] in self?.close(id) }
         let panel = ShelfPanel(shelf: shelf, origin: spot)
         panels[shelf.id] = panel
         panel.orderFrontRegardless()
