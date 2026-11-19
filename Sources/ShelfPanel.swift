@@ -24,8 +24,8 @@ final class WindowDragView: NSView {
 
 @MainActor
 final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPanelDataSource, @preconcurrency QLPreviewPanelDelegate {
-    static let width: CGFloat = 220
-    static let collapsedHeight: CGFloat = 250
+    static let width: CGFloat = 198  // wie Dropovers kleine Ablage (Bildschirmaufnahme: ≈198×206 pt)
+    static let collapsedHeight: CGFloat = 206
     static let detailSize = CGSize(width: 420, height: 360)
 
     let shelf: Shelf
@@ -64,13 +64,11 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
         expandSub = shelf.$expanded.dropFirst().sink { [weak self] open in
             guard let self else { return }
             let size = open ? Self.detailSize : CGSize(width: Self.width, height: Self.collapsedHeight)
-            var f = self.frame
-            f.origin.y += f.height - size.height  // obere Kante bleibt
-            f.size = size
-            f = self.clamped(f)
-            if Motion.userOn {
+            let c = CGPoint(x: self.frame.midX, y: self.frame.midY)  // Mittelpunkt bleibt, wächst in alle Richtungen
+            let f = self.clamped(NSRect(x: c.x - size.width / 2, y: c.y - size.height / 2, width: size.width, height: size.height))
+            if Motion.enabled {
                 NSAnimationContext.runAnimationGroup { c in
-                    c.duration = 0.28
+                    c.duration = 0.22  // Dropover: ≈0,2 s, Mitte bleibt
                     c.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 0.9, 0.3, 1)
                     self.animator().setFrame(f, display: true)
                     self.actions.animator().setFrame(self.actionsFrame(for: f), display: true)

@@ -14,6 +14,8 @@ struct ShelfView: View {
     private var edge: Color { scheme == .dark ? .white.opacity(0.2) : .black.opacity(0.12) }
     private var detail: Bool { shelf.expanded && !shelf.items.isEmpty }
     private var shown: Bool { shelf.appeared && !shelf.closing }
+    /// Wechsel klein ↔ groß: Inhalt blobbt kurz mit (0,96 → 1), bei reduzierter Bewegung nur Fade.
+    private var swap: AnyTransition { Motion.enabled ? .scale(scale: 0.96).combined(with: .opacity) : .opacity }
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: Self.radius, style: .continuous)
@@ -22,17 +24,17 @@ struct ShelfView: View {
             Group {
                 if detail {
                     DetailView(shelf: shelf, ns: ns) { shelf.expanded = false }
-                        .transition(.opacity)
+                        .transition(swap)
                 } else {
                     VStack(spacing: 0) {
                         topBar
                         content
                     }
-                    .transition(.opacity)
+                    .transition(swap)
                 }
             }
-            .scaleEffect(shelf.closing ? (Motion.enabled ? 0.9 : 1) : Motion.scale(0.85, on: shown) * (targeted && Motion.enabled ? 1.03 : 1))
-            .opacity(shown ? 1 : 0)
+            .popScale(shown: shown, closing: shelf.closing)
+            .scaleEffect(targeted && Motion.enabled ? 1.03 : 1)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(alignment: .top) {
@@ -49,7 +51,7 @@ struct ShelfView: View {
         }
         .clipShape(shape)
         .overlay(shape.strokeBorder(targeted ? Color.accentColor : (GlassKit.liquid ? .clear : edge), lineWidth: targeted ? 2.5 : 1).allowsHitTesting(false))
-        .animation(Motion.smooth, value: detail)
+        .animation(Motion.pop, value: detail)
         .animation(Motion.smooth, value: shelf.items.isEmpty)
         .animation(Motion.snappy, value: targeted)
         .onHover { shelf.setHover("main", $0) }
@@ -94,12 +96,12 @@ struct ShelfView: View {
         return ZStack {
             ForEach(Array(shown.enumerated()), id: \.element.id) { i, item in
                 let d = CGFloat(i - (shown.count - 1)) * 3  // ältere Dateien liegen 3 pt versetzt dahinter
-                Thumb(url: item.url).matchedGeometryEffect(id: item.id, in: ns).offset(x: d, y: -d).allowsHitTesting(false)
-                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+                Thumb(url: item.url, maxW: 100, maxH: 104).matchedGeometryEffect(id: item.id, in: ns).offset(x: d, y: -d).allowsHitTesting(false)
+                    .transition(.liquid)
             }
         }
         .animation(Motion.pop, value: shelf.items.count)
-        .frame(width: 130, height: 150)
+        .frame(width: 120, height: 116)
         .overlay {
             DragOut(urls: { shelf.items.map(\.url) }, onClick: { shelf.expanded = true }, onMoved: { shelf.remove($0) })
         }
