@@ -27,6 +27,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             seed.split(separator: ":").forEach { shelf?.add(URL(fileURLWithPath: String($0))) }
             if d.bool(forKey: "DebugDetail") { DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { shelf?.expanded = true } }
         }
+        if d.bool(forKey: "DebugOpenHistory") {
+            if HistoryStore.shared.entries.isEmpty {
+                let png = NSImage(size: NSSize(width: 80, height: 60), flipped: false) { r in NSColor.systemTeal.setFill(); r.fill(); return true }
+                    .tiffRepresentation.flatMap { NSBitmapImageRep(data: $0)?.representation(using: .png, properties: [:]) }
+                for names in [["Notizen"], ["Foto", "Bericht", "Skizze"], ["Rechnung"]] {
+                    let items = names.compactMap { n in
+                        Shelf.cacheFile(n, n == "Foto" ? "png" : "txt", n == "Foto" ? png ?? Data() : Data(n.utf8))
+                    }.map { u in Shelf.Item(url: u, bookmark: try? u.bookmarkData(options: .withSecurityScope)) }
+                    HistoryStore.shared.add(items)
+                }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { HistoryPanel.toggle() }
+        }
         if d.bool(forKey: "DebugOpenSettings") { DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { SettingsOpener.open() } }
     }
     #endif
@@ -50,6 +63,7 @@ struct DropShelfApp: App {
     var body: some Scene {
         MenuBarExtra("DropShelf", systemImage: "tray.and.arrow.down") {
             Button("Neue Ablage") { ShelfManager.shared.newShelf() }
+            Button("Verlauf…") { HistoryPanel.toggle() }
             Button("Einstellungen…") { SettingsOpener.open() }.keyboardShortcut(",")
             Divider()
             Button("Beenden") { NSApplication.shared.terminate(nil) }

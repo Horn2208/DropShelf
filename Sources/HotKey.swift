@@ -1,15 +1,15 @@
 import AppKit
 import Carbon
 
-/// Globale Tastenkürzel ⌃⌥A (AirDrop) und ⌃⌥Space (neue Ablage an der Maus) (Carbon, braucht keine Bedienungshilfen-Berechtigung).
-/// Je Kürzel per UserDefaults abschaltbar (`hotkeyAirDropEnabled`, `hotkeyShelfEnabled`); `sync()` gleicht an.
+/// Globale Tastenkürzel ⌃⌥A (AirDrop), ⌃⌥Space (neue Ablage an der Maus) und ⌃⌥V (Verlauf) (Carbon, braucht keine Bedienungshilfen-Berechtigung).
+/// Je Kürzel per UserDefaults abschaltbar (`hotkeyAirDropEnabled`, `hotkeyShelfEnabled`, `hotkeyHistoryEnabled`); `sync()` gleicht an.
 @MainActor
 final class HotKey {
     static let shared = HotKey()
     private var refs: [UInt32: EventHotKeyRef] = [:]
     private var handler: EventHandlerRef?
     private let keys: [(id: UInt32, code: Int, pref: String)] = [
-        (1, kVK_ANSI_A, "hotkeyAirDropEnabled"), (2, kVK_Space, "hotkeyShelfEnabled")]
+        (1, kVK_ANSI_A, "hotkeyAirDropEnabled"), (2, kVK_Space, "hotkeyShelfEnabled"), (3, kVK_ANSI_V, "hotkeyHistoryEnabled")]
 
     func register() {
         if handler == nil {
@@ -20,7 +20,11 @@ final class HotKey {
                                   nil, MemoryLayout<EventHotKeyID>.size, nil, &hk)
                 let id = hk.id
                 Task { @MainActor in
-                    if id == 1 { AirDropSender.shared.sendActiveShelf() } else { ShelfManager.shared.newShelf(at: NSEvent.mouseLocation) }
+                    switch id {
+                    case 1: AirDropSender.shared.sendActiveShelf()
+                    case 2: ShelfManager.shared.newShelf(at: NSEvent.mouseLocation)
+                    default: HistoryPanel.toggle()
+                    }
                 }
                 return noErr
             }, 1, &spec, nil, &handler)

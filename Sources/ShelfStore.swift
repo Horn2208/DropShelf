@@ -90,8 +90,10 @@ final class Shelf: ObservableObject, Identifiable {
     func remove(_ urls: [URL]) {
         let gone = items.filter { urls.contains($0.url) }
         guard !gone.isEmpty else { return }
+        // Wird die Ablage dadurch leer (Herausziehen, AirDrop, Leeren), den Stand vorher im Verlauf sichern.
+        let archived = gone.count == items.count && HistoryStore.shared.add(items)
         items.removeAll { urls.contains($0.url) }
-        orphans += gone.map(\.url).filter(Self.isCacheFile)
+        if !archived { orphans += gone.map(\.url).filter(Self.isCacheFile) }
         // Scopes bleiben bis discard() offen, damit der Empfänger noch lesen kann.
         if items.isEmpty { expanded = false }
         onChange?()
@@ -100,10 +102,11 @@ final class Shelf: ObservableObject, Identifiable {
     }
 
     /// Gibt Zugriffe frei und löscht selbst erzeugte Cache-Dateien.
-    func discard() {
+    /// `keepItems`: Dateien liegen jetzt im Verlauf – Cache-Dateien nicht löschen.
+    func discard(keepItems: Bool = false) {
         scoped.forEach { $0.stopAccessingSecurityScopedResource() }
         scoped = []
-        for url in items.map(\.url) + orphans where Self.isCacheFile(url) {
+        for url in (keepItems ? [] : items.map(\.url)) + orphans where Self.isCacheFile(url) {
             try? FileManager.default.removeItem(at: url)
         }
         items = []
@@ -198,7 +201,7 @@ final class ShelfManager {
             let onScreen = NSScreen.screens.contains { $0.frame.contains(r.origin) }
             open(Shelf(id: r.id, bookmarks: r.bookmarks), origin: onScreen ? r.origin : nil)
         }
-        Shelf.cleanCache(keeping: panels.values.flatMap { $0.shelf.items.map(\.url) })
+        Shelf.cleanCache(keeping: panels.values.flatMap { $0.shelf.items.map(\.url) } + HistoryStore.shared.entries.flatMap(\.urls))
         save()  // schreibt aufgeräumte Liste zurück (veraltete/fehlende Einträge)
     }
 
@@ -206,7 +209,18 @@ final class ShelfManager {
 
     /// Neue Ablage; mit `mouse` erscheint sie dort (Mauszeiger oben mittig), sonst oben rechts.
     func newShelf(at mouse: CGPoint? = nil) {
-        open(Shelf(), origin: mouse.map { CGPoint(x: $0.x - ShelfPanel.width / 2, y: $0.y - ShelfPanel.collapsedHeight + 40) })
+        open(Shelf(), origin: mouse.map(Self.origin))
+    }
+
+    private static func origin(forMouse m: CGPoint) -> CGPoint {
+        CGPoint(x: m.x - ShelfPanel.width / 2, y: m.y - ShelfPanel.collapsedHeight + 40)
+    }
+
+    /// Ablage aus dem Verlauf als neue schwebende Ablage zurückholen.
+    func restore(_ entry: HistoryStore.Entry, at mouse: CGPoint) {
+        open(Shelf(bookmarks: entry.bookmarks), origin: Self.origin(forMouse: mouse))
+        HistoryStore.shared.remove(entry.id, deleteFiles: false)
+        save()
     }
 
     private func open(_ shelf: Shelf, origin: CGPoint?) {
@@ -230,8 +244,9 @@ final class ShelfManager {
     func close(_ id: UUID) {
         guard let panel = panels.removeValue(forKey: id) else { return }
         if lastActive == id { lastActive = panels.keys.first }
+        let archived = HistoryStore.shared.add(panel.shelf.items)
         save()
-        panel.animateOut { panel.shelf.discard(); panel.close() }
+        panel.animateOut { panel.shelf.discard(keepItems: archived); panel.close() }
     }
 
     var bookmarkCount: Int { panels.values.reduce(0) { $0 + $1.shelf.bookmarkCount } }
