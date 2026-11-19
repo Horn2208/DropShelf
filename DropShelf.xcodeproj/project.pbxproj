@@ -8,11 +8,17 @@
 
 /* Begin PBXBuildFile section */
 		693D05C81ADDC1D2AC5AD186 /* DropShelfApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C326692C1F9E863BE47A1ED0 /* DropShelfApp.swift */; };
+		7DC410A0CC6B97A67DB5ECC6 /* ShelfView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFBC993DF6C34EFD9F0CE718 /* ShelfView.swift */; };
+		8A1FA6E994B3A67CF2171561 /* ShelfPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A9C0937FE4AFE7C9BFFB658 /* ShelfPanel.swift */; };
+		BFEB99C9D98DA604EE9AC1FB /* ShelfStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F4E26B13F44FFC2D7F1CA8D /* ShelfStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		2A9C0937FE4AFE7C9BFFB658 /* ShelfPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfPanel.swift; sourceTree = "<group>"; };
 		36C6D9A8793F1AFBA0FBC117 /* DropShelf.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DropShelf.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6F4E26B13F44FFC2D7F1CA8D /* ShelfStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfStore.swift; sourceTree = "<group>"; };
 		C326692C1F9E863BE47A1ED0 /* DropShelfApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropShelfApp.swift; sourceTree = "<group>"; };
+		CFBC993DF6C34EFD9F0CE718 /* ShelfView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -28,6 +34,9 @@
 			isa = PBXGroup;
 			children = (
 				C326692C1F9E863BE47A1ED0 /* DropShelfApp.swift */,
+				2A9C0937FE4AFE7C9BFFB658 /* ShelfPanel.swift */,
+				6F4E26B13F44FFC2D7F1CA8D /* ShelfStore.swift */,
+				CFBC993DF6C34EFD9F0CE718 /* ShelfView.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -99,6 +108,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				693D05C81ADDC1D2AC5AD186 /* DropShelfApp.swift in Sources */,
+				8A1FA6E994B3A67CF2171561 /* ShelfPanel.swift in Sources */,
+				BFEB99C9D98DA604EE9AC1FB /* ShelfStore.swift in Sources */,
+				7DC410A0CC6B97A67DB5ECC6 /* ShelfView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
