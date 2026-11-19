@@ -8,6 +8,7 @@ struct ShelfView: View {
     @State private var targeted = false
     @AppStorage("glassIntensity") private var glass = 0.4
     @Environment(\.colorScheme) private var scheme
+    @Namespace private var ns  // Vorschau „fliegt“ ins Raster der Detail-Ansicht
     static let animationDuration = 0.22
     static let radius: CGFloat = 26
     private var edge: Color { scheme == .dark ? .white.opacity(0.2) : .black.opacity(0.12) }
@@ -20,14 +21,14 @@ struct ShelfView: View {
             WindowDragArea()
             Group {
                 if detail {
-                    DetailView(shelf: shelf) { shelf.expanded = false }
-                        .transition(.scale(scale: 0.92).combined(with: .opacity))
+                    DetailView(shelf: shelf, ns: ns) { shelf.expanded = false }
+                        .transition(.opacity)
                 } else {
                     VStack(spacing: 0) {
                         topBar
                         content
                     }
-                    .transition(.scale(scale: 0.92).combined(with: .opacity))
+                    .transition(.opacity)
                 }
             }
             .scaleEffect(shelf.closing ? (Motion.enabled ? 0.9 : 1) : Motion.scale(0.85, on: shown) * (targeted && Motion.enabled ? 1.03 : 1))
@@ -35,20 +36,22 @@ struct ShelfView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(alignment: .top) {
-            // Nur leichte Tönung über dem Glas (Stärke per Einstellung), oben ein dezenter Glanz.
+            // Ohne Liquid Glass: nur leichte Tönung über dem Glas (Stärke per Einstellung), oben ein dezenter Glanz.
             let tint = 0.05 + 0.3 * glass
-            ZStack(alignment: .top) {
-                (scheme == .dark ? Color.black.opacity(tint) : Color.white.opacity(tint * 1.5))
-                LinearGradient(colors: [.white.opacity(0.1), .white.opacity(0)], startPoint: .top, endPoint: .bottom)
-                    .frame(height: 90)
+            if !GlassKit.liquid {
+                ZStack(alignment: .top) {
+                    (scheme == .dark ? Color.black.opacity(tint) : Color.white.opacity(tint * 1.5))
+                    LinearGradient(colors: [.white.opacity(0.1), .white.opacity(0)], startPoint: .top, endPoint: .bottom)
+                        .frame(height: 90)
+                }
+                .allowsHitTesting(false)
             }
-            .allowsHitTesting(false)
         }
         .clipShape(shape)
-        .overlay(shape.strokeBorder(targeted ? Color.accentColor : edge, lineWidth: targeted ? 2.5 : 1).allowsHitTesting(false))
-        .animation(Motion.pop, value: detail)
-        .animation(Motion.pop, value: shelf.items.isEmpty)
-        .animation(.easeOut(duration: 0.15), value: targeted)
+        .overlay(shape.strokeBorder(targeted ? Color.accentColor : (GlassKit.liquid ? .clear : edge), lineWidth: targeted ? 2.5 : 1).allowsHitTesting(false))
+        .animation(Motion.smooth, value: detail)
+        .animation(Motion.smooth, value: shelf.items.isEmpty)
+        .animation(Motion.snappy, value: targeted)
         .onHover { shelf.setHover("main", $0) }
         .onDrop(of: [.fileURL, .image, .plainText, .url], isTargeted: $targeted) { shelf.drop($0) }
     }
@@ -72,6 +75,7 @@ struct ShelfView: View {
             VStack(spacing: 8) {
                 Image(systemName: "tray.and.arrow.down").font(.system(size: 44, weight: .thin))
                     .foregroundStyle(Color.primary.opacity(0.7))
+                    .bounceSymbol(targeted)
                 Text("Dateien hierher ziehen").font(.system(size: 12)).foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -90,7 +94,7 @@ struct ShelfView: View {
         return ZStack {
             ForEach(Array(shown.enumerated()), id: \.element.id) { i, item in
                 let d = CGFloat(i - (shown.count - 1)) * 3  // ältere Dateien liegen 3 pt versetzt dahinter
-                Thumb(url: item.url).offset(x: d, y: -d).allowsHitTesting(false)
+                Thumb(url: item.url).matchedGeometryEffect(id: item.id, in: ns).offset(x: d, y: -d).allowsHitTesting(false)
                     .transition(.scale(scale: 0.6).combined(with: .opacity))
             }
         }
@@ -109,15 +113,14 @@ struct ShelfView: View {
                 Text(label)
                     .font(.system(size: 13, weight: .medium))
                     .lineLimit(1).truncationMode(.middle)
-                    .id(label).transition(.opacity)
-                Image(systemName: "chevron.right").font(.system(size: 9, weight: .bold))
+                    .contentTransition(.numericText())
+                Image(systemName: "chevron.right").font(.system(size: 9, weight: .bold)).bounceSymbol(n)
             }
             .foregroundStyle(Color.primary.opacity(0.9))
             .padding(.horizontal, 12).frame(height: 26)
-            .background(.ultraThinMaterial, in: Capsule())
-            .overlay(Capsule().strokeBorder(edge, lineWidth: 0.5))
+            .glassBG(Capsule(), line: 0.5)
             .frame(maxWidth: 170)
-            .animation(Motion.pop, value: label)
+            .animation(Motion.smooth, value: label)
         }
         .buttonStyle(.plain)
     }

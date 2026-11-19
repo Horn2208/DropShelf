@@ -29,6 +29,7 @@ struct SettingsView: View {
     var body: some View {
         TabView(selection: $tab) {
             GeneralTab().tabItem { Label("Allgemein", systemImage: "gearshape") }.tag("general")
+            ActionsTab().tabItem { Label("Aktionen", systemImage: "square.grid.2x2") }.tag("actions")
             ShortcutsTab().tabItem { Label("Kürzel", systemImage: "keyboard") }.tag("shortcuts")
             AppearanceTab().tabItem { Label("Aussehen", systemImage: "paintbrush") }.tag("appearance")
             PermissionsTab().tabItem { Label("Berechtigungen", systemImage: "lock.shield") }.tag("perms")
@@ -43,6 +44,8 @@ private struct GeneralTab: View {
     @AppStorage("autoCloseWhenEmpty") private var autoClose = true
     @AppStorage("askClearAfterAirDrop") private var askClear = true
     @AppStorage("viewMode") private var mode = "grid"
+    @AppStorage("historyEnabled") private var history = true
+    @AppStorage("historyLimit") private var historyLimit = 30
     @State private var login = SMAppService.mainApp.status
     @State private var error: String?
 
@@ -57,12 +60,20 @@ private struct GeneralTab: View {
                 }
             }
             Section {
+                Toggle("Verlauf speichern", isOn: $history)
+                Picker("Verlaufsgröße", selection: $historyLimit) {
+                    ForEach([10, 30, 50], id: \.self) { Text("\($0) Ablagen").tag($0) }
+                }
+                .disabled(!history)
+            }
+            Section {
                 Toggle("Beim Anmelden starten", isOn: Binding(get: { login == .enabled }, set: setLogin))
                 Text("Status: \(Self.text(login))").font(.caption).foregroundStyle(.secondary)
                 if let error { Text(error).font(.caption).foregroundStyle(.red) }
             }
         }
         .formStyle(.grouped)
+        .onChange(of: historyLimit) { _ in HistoryStore.shared.trim() }
     }
 
     private func setLogin(_ on: Bool) {
@@ -84,20 +95,56 @@ private struct GeneralTab: View {
     }
 }
 
+/// Aktionsknöpfe: Schalter und Reihenfolge per Ziehen; höchstens 5 aktiv.
+private struct ActionsTab: View {
+    @ObservedObject private var prefs = ActionPrefs.shared
+
+    var body: some View {
+        let full = prefs.enabled.count >= ActionPrefs.maxActive
+        VStack(alignment: .leading, spacing: 8) {
+            List {
+                ForEach(prefs.ordered) { a in
+                    let on = prefs.enabled.contains(a)
+                    Toggle(isOn: Binding(get: { on }, set: { set(a, $0) })) {
+                        Label(a.title, systemImage: a.symbol)
+                    }
+                    .disabled(!on && full)
+                }
+                .onMove { from, to in
+                    var all = prefs.ordered
+                    all.move(fromOffsets: from, toOffset: to)
+                    prefs.enabled = all.filter(prefs.enabled.contains)
+                }
+            }
+            Text(full ? "Es sind höchstens \(ActionPrefs.maxActive) Aktionen gleichzeitig möglich – erst eine ausschalten."
+                      : "Reihenfolge per Ziehen ändern. Änderungen wirken sofort.")
+                .font(.caption).foregroundStyle(full ? .orange : .secondary).padding(.horizontal, 20).padding(.bottom, 12)
+        }
+    }
+
+    private func set(_ a: ShelfAction, _ on: Bool) {
+        if on { if prefs.enabled.count < ActionPrefs.maxActive { prefs.enabled.append(a) } }
+        else { prefs.enabled.removeAll { $0 == a } }
+    }
+}
+
 private struct ShortcutsTab: View {
     @AppStorage("hotkeyShelfEnabled") private var shelfOn = true
     @AppStorage("hotkeyAirDropEnabled") private var airOn = true
+    @AppStorage("hotkeyHistoryEnabled") private var histOn = true
 
     var body: some View {
         Form {
             Section {
                 Toggle(isOn: $shelfOn) { row("Neue Ablage an der Maus", "⌃⌥Space") }
                 Toggle(isOn: $airOn) { row("Aktive Ablage per AirDrop senden", "⌃⌥A") }
+                Toggle(isOn: $histOn) { row("Verlauf öffnen", "⌃⌥V") }
             } footer: { Text("Eigene Kürzel festlegen folgt später.") }
         }
         .formStyle(.grouped)
         .onChange(of: shelfOn) { _ in HotKey.shared.sync() }
         .onChange(of: airOn) { _ in HotKey.shared.sync() }
+        .onChange(of: histOn) { _ in HotKey.shared.sync() }
     }
 
     private func row(_ title: String, _ keys: String) -> some View {

@@ -2,53 +2,10 @@ import AppKit
 import Combine
 import SwiftUI
 
-enum ShelfAction: CaseIterable {
-    case airdrop, message, mail, share
-
-    var symbol: String {
-        switch self {
-        case .airdrop: "dot.radiowaves.up.forward"
-        case .message: "message"
-        case .mail: "envelope"
-        case .share: "square.and.arrow.up"
-        }
-    }
-    var help: String {
-        switch self {
-        case .airdrop: "Per AirDrop senden (⌃⌥A)"
-        case .message: "Per Nachrichten senden"
-        case .mail: "Per Mail senden"
-        case .share: "Teilen…"
-        }
-    }
-    private var serviceName: NSSharingService.Name? {
-        switch self {
-        case .airdrop: .sendViaAirDrop
-        case .message: .composeMessage
-        case .mail: .composeEmail
-        case .share: nil
-        }
-    }
-
-    @MainActor func canPerform(_ urls: [URL]) -> Bool {
-        guard !urls.isEmpty else { return false }
-        guard let name = serviceName else { return true }
-        return NSSharingService(named: name)?.canPerform(withItems: urls) ?? false
-    }
-
-    @MainActor func run(shelf: Shelf, anchor: NSView?) {
-        let urls = shelf.items.map(\.url)
-        if self == .airdrop { AirDropSender.shared.send(shelf: shelf, urls: urls); return }
-        NSApp.activate(ignoringOtherApps: true)  // nonactivating Panel: Teilen-Dialog braucht aktive App
-        if let name = serviceName { NSSharingService(named: name)?.perform(withItems: urls) }
-        else if let anchor { NSSharingServicePicker(items: urls).show(relativeTo: .zero, of: anchor, preferredEdge: .minY) }
-    }
-}
-
 /// Eigenes kleines Fenster unter der Ablage: Glas nur hinter den Knöpfen, der Rest bleibt durchsichtig.
 @MainActor
 final class ActionsPanel: NSPanel {
-    static let size = CGSize(width: 190, height: 40)
+    static let size = CGSize(width: 240, height: 44)
     weak var anchorWindow: NSWindow?
     private var sub: AnyCancellable?
 
@@ -75,22 +32,35 @@ final class ActionsPanel: NSPanel {
 
 private struct ActionsView: View {
     @ObservedObject var shelf: Shelf
+    @ObservedObject private var prefs = ActionPrefs.shared
     let anchor: () -> NSView?
+    @Namespace private var ns
     private var visible: Bool { shelf.hovering && !shelf.items.isEmpty }
+    private var shown: [ShelfAction] { Array(prefs.enabled.prefix(ActionPrefs.maxActive)) }
 
     var body: some View {
         let urls = shelf.items.map(\.url)
-        HStack(spacing: 10) {
-            ForEach(Array(ShelfAction.allCases.enumerated()), id: \.element) { i, a in
-                let ok = a.canPerform(urls)
-                GlassCircleButton(symbol: a.symbol, size: 34, help: a.help) { a.run(shelf: shelf, anchor: anchor()) }
-                    .opacity(visible ? (ok ? 1 : 0.35) : 0)
-                    .disabled(!ok)
-                    .scaleEffect(Motion.scale(0.5, on: visible))
-                    .animation(Motion.pop.map { $0.delay(Double(i) * 0.03) }, value: visible)
+        GlassGroup(spacing: 14) {
+            HStack(spacing: 10) {
+                // Ab macOS 26 fließen die Glas-Knöpfe beim Erscheinen ineinander (Morph über glassEffectID).
+                if visible || !GlassKit.liquid {
+                    ForEach(Array(shown.enumerated()), id: \.element) { i, a in
+                        let ok = a.canPerform(urls)
+                        button(a, ok: ok).opacity(GlassKit.liquid ? (ok ? 1 : 0.35) : (visible ? (ok ? 1 : 0.35) : 0))
+                            .scaleEffect(GlassKit.liquid ? 1 : Motion.scale(0.5, on: visible))
+                            .animation(Motion.pop.map { $0.delay(Double(i) * 0.03) }, value: visible)
+                    }
+                }
             }
+            .animation(Motion.bouncy, value: visible)
+            .animation(Motion.smooth, value: shown)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .onHover { shelf.setHover("actions", $0) }
+        .onHover { shelf.setHover("actions", $0) }
+    }
+
+    @ViewBuilder private func button(_ a: ShelfAction, ok: Bool) -> some View {
+        let b = GlassCircleButton(symbol: a.symbol, size: 34, help: a.help) { a.run(shelf: shelf, anchor: anchor()) }.disabled(!ok)
+        if #available(macOS 26, *) { b.glassEffectID(a.rawValue, in: ns) } else { b }
     }
 }

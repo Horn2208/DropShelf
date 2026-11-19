@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import Quartz
 import SwiftUI
 
 /// Verschiebt das Fenster per `performDrag` (SwiftUI-Inhalt schluckt sonst die Ereignisse).
@@ -22,7 +23,7 @@ final class WindowDragView: NSView {
 }
 
 @MainActor
-final class ShelfPanel: NSPanel, NSWindowDelegate {
+final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPanelDataSource, @preconcurrency QLPreviewPanelDelegate {
     static let width: CGFloat = 220
     static let collapsedHeight: CGFloat = 250
     static let detailSize = CGSize(width: 420, height: 360)
@@ -30,6 +31,7 @@ final class ShelfPanel: NSPanel, NSWindowDelegate {
     let shelf: Shelf
     private let actions: ActionsPanel
     private var expandSub: AnyCancellable?
+    private var tintSub: AnyCancellable?
 
     init(shelf: Shelf, origin: CGPoint) {
         self.shelf = shelf
@@ -46,20 +48,12 @@ final class ShelfPanel: NSPanel, NSWindowDelegate {
         hasShadow = true
         delegate = self
 
-        // Echtes Glas: Effekt-View hinter dem Fenster, rund maskiert; Schatten folgt der runden Form.
-        let fx = NSVisualEffectView()
-        fx.material = .underWindowBackground  // transparenter als .hudWindow
-        fx.blendingMode = .behindWindow
-        fx.state = .active
-        fx.wantsLayer = true
-        fx.layer?.cornerRadius = ShelfView.radius
-        fx.layer?.cornerCurve = .continuous
-        fx.layer?.masksToBounds = true
+        // Ab macOS 26 echtes Liquid Glass (NSGlassEffectView), sonst Effekt-View; Schatten folgt der runden Form.
         let host = NSHostingView(rootView: ShelfView(shelf: shelf) { ShelfManager.shared.close(shelf.id) })
-        host.frame = fx.bounds
-        host.autoresizingMask = [.width, .height]
-        fx.addSubview(host)
-        contentView = fx
+        contentView = GlassKit.wrap(host, radius: ShelfView.radius)
+        GlassKit.retint(contentView)
+        tintSub = NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
+            .sink { [weak self] _ in GlassKit.retint(self?.contentView) }
 
         actions.anchorWindow = self
         clampToScreen()
@@ -77,7 +71,7 @@ final class ShelfPanel: NSPanel, NSWindowDelegate {
             if Motion.userOn {
                 NSAnimationContext.runAnimationGroup { c in
                     c.duration = 0.28
-                    c.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                    c.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 0.9, 0.3, 1)
                     self.animator().setFrame(f, display: true)
                     self.actions.animator().setFrame(self.actionsFrame(for: f), display: true)
                 }
@@ -130,6 +124,27 @@ final class ShelfPanel: NSPanel, NSWindowDelegate {
         if o != frame.origin { setFrameOrigin(o) }
     }
 
+    // Quick Look (Leertaste): Panel darf Taste werden, ohne die App zu aktivieren.
+    override var canBecomeKey: Bool { true }
+
+    func toggleQuickLook() {
+        guard let ql = QLPreviewPanel.shared() else { return }
+        if QLPreviewPanel.sharedPreviewPanelExists() && ql.isVisible { ql.orderOut(nil); return }
+        guard !shelf.items.isEmpty else { return }
+        makeKey()
+        ql.makeKeyAndOrderFront(nil)
+    }
+
+    override func keyDown(with event: NSEvent) {
+        if event.keyCode == 49 { toggleQuickLook() } else { super.keyDown(with: event) }
+    }
+
+    override func acceptsPreviewPanelControl(_ panel: QLPreviewPanel!) -> Bool { true }
+    override func beginPreviewPanelControl(_ panel: QLPreviewPanel!) { panel.dataSource = self; panel.delegate = self }
+    override func endPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        if panel.dataSource === self { panel.dataSource = nil; panel.delegate = nil }
+    }
+
     override func close() {
         actions.close()
         super.close()
@@ -146,4 +161,7 @@ final class ShelfPanel: NSPanel, NSWindowDelegate {
     }
 
     func windowDidResize(_ notification: Notification) { invalidateShadow() }
+
+    func numberOfPreviewItems(in panel: QLPreviewPanel!) -> Int { shelf.items.count }
+    func previewPanel(_ panel: QLPreviewPanel!, previewItemAt index: Int) -> QLPreviewItem! { shelf.items[index].url as NSURL }
 }

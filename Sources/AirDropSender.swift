@@ -21,7 +21,7 @@ final class AirDropSender: NSObject, NSSharingServiceDelegate {
         send(shelf: shelf, urls: shelf.items.map(\.url))
     }
 
-    func send(shelf: Shelf, urls: [URL]) {
+    func send(shelf: Shelf?, urls: [URL]) {
         guard service == nil,  // läuft schon eine Übertragung
               Self.unavailableReason(for: urls) == nil,
               let s = NSSharingService(named: .sendViaAirDrop) else { NSSound.beep(); return }

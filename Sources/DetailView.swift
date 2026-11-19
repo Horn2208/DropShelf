@@ -40,10 +40,10 @@ private enum SortKey: String, CaseIterable {
 /// Aufgeklappte Ansicht im selben Panel: Kopfzeile, Raster oder Liste.
 struct DetailView: View {
     @ObservedObject var shelf: Shelf
+    let ns: Namespace.ID
     let back: () -> Void
     @AppStorage("viewMode") private var mode = "grid"
     @State private var sort = SortKey.added
-    @Environment(\.colorScheme) private var scheme
 
     private var items: [Shelf.Item] {
         switch sort {
@@ -59,10 +59,10 @@ struct DetailView: View {
             ScrollView {
                 if mode == "grid" {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 110, maximum: 140), spacing: 8)], spacing: 8) {
-                        ForEach(items) { DetailCell(shelf: shelf, item: $0, grid: true) }
+                        ForEach(items) { DetailCell(shelf: shelf, item: $0, grid: true, ns: ns) }
                     }
                 } else {
-                    LazyVStack(spacing: 2) { ForEach(items) { DetailCell(shelf: shelf, item: $0, grid: false) } }
+                    LazyVStack(spacing: 2) { ForEach(items) { DetailCell(shelf: shelf, item: $0, grid: false, ns: ns) } }
                 }
             }
             .padding(.horizontal, 12).padding(.bottom, 12)
@@ -75,6 +75,7 @@ struct DetailView: View {
             GlassCircleButton(symbol: "chevron.left", help: "Zurück", action: back)
             VStack(alignment: .leading, spacing: 1) {
                 Text(FileInfo.title(urls)).font(.system(size: 14, weight: .semibold))
+                    .contentTransition(.numericText()).animation(Motion.smooth, value: urls.count)
                 Text(FileInfo.bytes(urls.reduce(0) { $0 + FileInfo.size($1) }))
                     .font(.system(size: 11)).monospacedDigit().foregroundStyle(.secondary)
             }
@@ -90,14 +91,13 @@ struct DetailView: View {
                 modeButton("list.bullet", "list", "Liste")
             }
             .padding(2)
-            .background(.ultraThinMaterial, in: Capsule())
-            .overlay(Capsule().strokeBorder(scheme == .dark ? Color.white.opacity(0.2) : Color.black.opacity(0.12), lineWidth: 1))
+            .glassBG(Capsule())
         }
         .padding(.horizontal, 12).padding(.vertical, 12)
     }
 
     private func modeButton(_ symbol: String, _ value: String, _ help: String) -> some View {
-        Button { withAnimation(Motion.pop) { mode = value } } label: {
+        Button { withAnimation(Motion.snappy) { mode = value } } label: {
             Image(systemName: symbol).font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Color.primary.opacity(mode == value ? 0.95 : 0.55))
                 .frame(width: 30, height: 20)
@@ -111,6 +111,7 @@ private struct DetailCell: View {
     let shelf: Shelf
     let item: Shelf.Item
     let grid: Bool
+    let ns: Namespace.ID
     @State private var hover = false
     @State private var meta = ""
 
@@ -118,13 +119,13 @@ private struct DetailCell: View {
         Group {
             if grid {
                 VStack(spacing: 4) {
-                    Thumb(url: item.url, maxW: 96, maxH: 80).frame(height: 84)
+                    Thumb(url: item.url, maxW: 96, maxH: 80).matchedGeometryEffect(id: item.id, in: ns).frame(height: 84)
                     label(.center)
                 }
                 .padding(8).frame(maxWidth: .infinity)
             } else {
                 HStack(spacing: 10) {
-                    Thumb(url: item.url, maxW: 32, maxH: 32, shadow: false).frame(width: 36, height: 36)
+                    Thumb(url: item.url, maxW: 32, maxH: 32, shadow: false).matchedGeometryEffect(id: item.id, in: ns).frame(width: 36, height: 36)
                     label(.leading)
                     Spacer(minLength: 0)
                 }

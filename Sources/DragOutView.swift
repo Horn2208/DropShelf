@@ -7,11 +7,13 @@ struct DragOut: NSViewRepresentable {
     var onClick: (() -> Void)?
     var onRemove: (() -> Void)?
     var onAirDrop: (() -> Void)?
+    var onRestore: (() -> Void)?
+    var removeTitle = "Entfernen"
     let onMoved: ([URL]) -> Void
 
     func makeNSView(context: Context) -> DragOutView { DragOutView() }
     func updateNSView(_ v: DragOutView, context: Context) {
-        v.urls = urls; v.onClick = onClick; v.onRemove = onRemove; v.onAirDrop = onAirDrop; v.onMoved = onMoved
+        v.urls = urls; v.onClick = onClick; v.onRemove = onRemove; v.onAirDrop = onAirDrop; v.onRestore = onRestore; v.removeTitle = removeTitle; v.onMoved = onMoved
     }
 }
 
@@ -20,6 +22,8 @@ final class DragOutView: NSView, NSDraggingSource {
     var onClick: (() -> Void)?
     var onRemove: (() -> Void)?
     var onAirDrop: (() -> Void)?
+    var onRestore: (() -> Void)?
+    var removeTitle = "Entfernen"
     var onMoved: ([URL]) -> Void = { _ in }
     private var downPoint: NSPoint?
     private var dragURLs: [URL] = []
@@ -56,14 +60,16 @@ final class DragOutView: NSView, NSDraggingSource {
     override func menu(for event: NSEvent) -> NSMenu? {
         guard onRemove != nil else { return nil }
         let m = NSMenu()
+        if onRestore != nil { m.addItem(withTitle: "Wiederherstellen", action: #selector(restore), keyEquivalent: "").target = self }
         if onAirDrop != nil {
             m.addItem(withTitle: "Per AirDrop senden", action: #selector(airDrop), keyEquivalent: "").target = self
         }
         m.addItem(withTitle: "Im Finder zeigen", action: #selector(reveal), keyEquivalent: "").target = self
-        m.addItem(withTitle: "Entfernen", action: #selector(remove), keyEquivalent: "").target = self
+        m.addItem(withTitle: removeTitle, action: #selector(remove), keyEquivalent: "").target = self
         return m
     }
 
+    @objc private func restore() { onRestore?() }
     @objc private func airDrop() { onAirDrop?() }
     @objc private func reveal() { NSWorkspace.shared.activateFileViewerSelecting(urls()) }
     @objc private func remove() { onRemove?() }
