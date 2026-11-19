@@ -23,6 +23,7 @@
 		BFEB99C9D98DA604EE9AC1FB /* ShelfStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F4E26B13F44FFC2D7F1CA8D /* ShelfStore.swift */; };
 		C88FF234230427DBA260D678 /* AirDropSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67ED42389CECE2EDBF165D46 /* AirDropSender.swift */; };
 		CD5D85133085963F0CD39C10 /* HistoryPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D2B08962DB1244729A6DEF /* HistoryPanel.swift */; };
+		CDCABC8FC3E57BB57AD4564C /* FunEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADC0DA491D3EA1EB2ACA0B54 /* FunEffects.swift */; };
 		CF160FDE246D2C50F05D34DD /* HotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198BAAE92DAB36DD31BE5869 /* HotKey.swift */; };
 /* End PBXBuildFile section */
 
@@ -40,6 +41,7 @@
 		9850E7DDDA0C3A9ECEA3900F /* Shaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
 		9931FD6B3B65DB5937EFC476 /* Actions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Actions.swift; sourceTree = "<group>"; };
 		AAD6CBCB085D4DADCAA48184 /* History.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = History.swift; sourceTree = "<group>"; };
+		ADC0DA491D3EA1EB2ACA0B54 /* FunEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FunEffects.swift; sourceTree = "<group>"; };
 		C326692C1F9E863BE47A1ED0 /* DropShelfApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropShelfApp.swift; sourceTree = "<group>"; };
 		CA6CA8D7CD0F04FDBBC91BD4 /* ActionsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsPanel.swift; sourceTree = "<group>"; };
 		CE810BB12920FF0A67E1BA87 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -73,6 +75,7 @@
 				7F8C49819561928CB7E089AD /* DetailView.swift */,
 				93E26FA53FBA96D20AFA0C78 /* DragOutView.swift */,
 				C326692C1F9E863BE47A1ED0 /* DropShelfApp.swift */,
+				ADC0DA491D3EA1EB2ACA0B54 /* FunEffects.swift */,
 				834B52418C08BA9A4A1C1A57 /* Glass.swift */,
 				AAD6CBCB085D4DADCAA48184 /* History.swift */,
 				D1D2B08962DB1244729A6DEF /* HistoryPanel.swift */,
@@ -172,6 +175,7 @@
 				5A6B749F34F9295245C3D1E7 /* DetailView.swift in Sources */,
 				5FD93AF5845C480ED43BB09F /* DragOutView.swift in Sources */,
 				693D05C81ADDC1D2AC5AD186 /* DropShelfApp.swift in Sources */,
+				CDCABC8FC3E57BB57AD4564C /* FunEffects.swift in Sources */,
 				3D9E2E697360DD20E62CA0D1 /* Glass.swift in Sources */,
 				4103671F8B28887C8A6465AC /* History.swift in Sources */,
 				CD5D85133085963F0CD39C10 /* HistoryPanel.swift in Sources */,
