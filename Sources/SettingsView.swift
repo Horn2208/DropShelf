@@ -132,6 +132,8 @@ private struct ShortcutsTab: View {
     @AppStorage("hotkeyShelfEnabled") private var shelfOn = true
     @AppStorage("hotkeyAirDropEnabled") private var airOn = true
     @AppStorage("hotkeyHistoryEnabled") private var histOn = true
+    @AppStorage("shakeEnabled") private var shakeOn = true
+    @AppStorage("shakeSensitivity") private var shakeSens = 0.5
 
     var body: some View {
         Form {
@@ -140,11 +142,25 @@ private struct ShortcutsTab: View {
                 Toggle(isOn: $airOn) { row("Aktive Ablage per AirDrop senden", "⌃⌥A") }
                 Toggle(isOn: $histOn) { row("Verlauf öffnen", "⌃⌥V") }
             } footer: { Text("Eigene Kürzel festlegen folgt später.") }
+            Section {
+                Toggle("Schütteln erkennen", isOn: $shakeOn)
+                VStack(alignment: .leading) {
+                    Text("Empfindlichkeit")
+                    Slider(value: $shakeSens, in: 0...1) { Text("Empfindlichkeit") } minimumValueLabel: { Text("niedrig") } maximumValueLabel: { Text("hoch") }
+                }
+                .disabled(!shakeOn)
+            } footer: {
+                Text("Schüttle beim Ziehen einer Datei die Maus hin und her, um eine neue Ablage an der Maus zu öffnen. Dafür braucht DropShelf die Berechtigung „Bedienungshilfen“ (Tab Berechtigungen).")
+            }
         }
         .formStyle(.grouped)
         .onChange(of: shelfOn) { _ in HotKey.shared.sync() }
         .onChange(of: airOn) { _ in HotKey.shared.sync() }
         .onChange(of: histOn) { _ in HotKey.shared.sync() }
+        .onChange(of: shakeOn) { on in
+            ShakeDetector.shared.sync()
+            if on, !AXIsProcessTrusted() { ShakeDetector.requestAccessibility() }  // nur auf Wunsch, nie beim Start
+        }
     }
 
     private func row(_ title: String, _ keys: String) -> some View {
@@ -189,8 +205,8 @@ private struct PermissionsTab: View {
     var body: some View {
         Form {
             Section {
-                row("Bedienungshilfen", "Schütteln erkennen (ab Phase 6).", ax, "Privacy_Accessibility")
-                row("Eingabeüberwachung", "Maus-Gesten global verfolgen (ab Phase 6).", input, "Privacy_ListenEvent")
+                row("Bedienungshilfen", "Nötig, damit DropShelf das Schütteln beim Ziehen einer Datei bemerkt. DropShelf liest dabei nur die Mausbewegung, keine Tasten oder Inhalte.", ax, "Privacy_Accessibility")
+                row("Eingabeüberwachung", "Maus-Gesten global verfolgen (nur falls macOS danach fragt).", input, "Privacy_ListenEvent")
                 row("Mitteilungen", "Wird aktuell nicht benötigt.", notif, "Notifications")
                 row("Anmeldeobjekt", "Start beim Anmelden: \(GeneralTab.text(login)).",
                     login == .enabled ? .granted : .denied, "LoginItems")
@@ -228,6 +244,9 @@ private struct PermissionsTab: View {
                 Text(hint).font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
+            if pane == "Privacy_Accessibility", state != .granted {
+                Button("Erlauben…") { ShakeDetector.requestAccessibility() }
+            }
             Button("Öffnen…") {
                 if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(pane)") ?? nil,
                    !NSWorkspace.shared.open(url) {

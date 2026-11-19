@@ -5,12 +5,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         #if DEBUG
         ShelfRecord.selfCheck()
+        ShakeDetector.selfCheck()
         #endif
         ShelfManager.shared.restore()
         if ShelfManager.shared.isEmpty && UserDefaults.standard.object(forKey: "openShelfOnLaunch") as? Bool ?? true {
             ShelfManager.shared.newShelf()
         }
         HotKey.shared.register()
+        ShakeDetector.shared.sync()
         #if DEBUG
         debugLaunchArgs()
         #endif
