@@ -212,6 +212,20 @@ final class ShelfManager {
         open(Shelf(), origin: mouse.map(Self.origin))
     }
 
+    /// Neue Ablage an der Maus, gefüllt aus der Zwischenablage (Dateien, sonst Bild, sonst URLs/Text); leer → Piepton.
+    func newShelfFromClipboard() {
+        let pb = NSPasteboard.general
+        let opts: [NSPasteboard.ReadingOptionKey: Any] = [.urlReadingFileURLsOnly: true]
+        let files = pb.readObjects(forClasses: [NSURL.self], options: opts) as? [NSURL] ?? []
+        let objects: [NSItemProviderWriting] = !files.isEmpty ? files
+            : (pb.readObjects(forClasses: [NSImage.self]) as? [NSImage] ?? []).prefix(1).map { $0 as NSItemProviderWriting }
+        let all = !objects.isEmpty ? objects : (pb.readObjects(forClasses: [NSURL.self, NSString.self]) as? [NSItemProviderWriting] ?? [])
+        guard !all.isEmpty else { NSSound.beep(); return }
+        let shelf = Shelf()
+        open(shelf, origin: Self.origin(forMouse: NSEvent.mouseLocation))
+        _ = shelf.drop(all.map { NSItemProvider(object: $0) })
+    }
+
     private static func origin(forMouse m: CGPoint) -> CGPoint {
         CGPoint(x: m.x - ShelfPanel.width / 2, y: m.y - ShelfPanel.collapsedHeight + 40)
     }

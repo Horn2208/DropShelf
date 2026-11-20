@@ -1,7 +1,8 @@
 import AppKit
 
 /// Öffnet beim Schütteln einer ziehenden Maus eine Ablage (globaler `.leftMouseDragged`-Monitor).
-/// Einstellungen: UserDefaults `shakeEnabled` (Default an), `shakeSensitivity` 0…1 (Default 0,5).
+/// Einstellungen: UserDefaults `shakeEnabled` (Default an), `shakeSensitivity` 0…1 (Default 0,5),
+/// `shakeModifier` (`none`/`shift`/`option`/`control`/`command`): beim Ziehen mit gehaltener Taste öffnet sich die Ablage sofort.
 /// Globale Maus-Ereignisse brauchen die Bedienungshilfen-Berechtigung – die Abfrage kommt nur aus den Einstellungen.
 @MainActor
 final class ShakeDetector {
@@ -30,6 +31,11 @@ final class ShakeDetector {
         return count
     }
 
+    static var shakeOn: Bool { UserDefaults.standard.object(forKey: "shakeEnabled") as? Bool ?? true }
+    static var modifier: NSEvent.ModifierFlags? {
+        ["shift": .shift, "option": .option, "control": .control, "command": .command][UserDefaults.standard.string(forKey: "shakeModifier") ?? ""]
+    }
+
     private var monitors: [Any] = []
     private var samples: [(x: CGFloat, t: TimeInterval)] = []
     private var downChange = 0
@@ -37,7 +43,7 @@ final class ShakeDetector {
 
     /// Gleicht den Monitor an die Einstellung an (beim Start und bei Änderung des Schalters).
     func sync() {
-        let on = UserDefaults.standard.object(forKey: "shakeEnabled") as? Bool ?? true
+        let on = Self.shakeOn || Self.modifier != nil
         if on, monitors.isEmpty {
             monitors = [
                 NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self] e in
@@ -69,6 +75,12 @@ final class ShakeDetector {
         case .leftMouseDragged:
             // Nur wenn der Zug etwas trägt (Drag-Pasteboard hat sich seit mouseDown geändert); ein Schütteln pro Zug.
             guard !fired, NSPasteboard(name: .drag).changeCount != downChange else { return }
+            if let m = Self.modifier, e.modifierFlags.contains(m) {
+                fired = true; samples = []
+                ShelfManager.shared.newShelf(at: NSEvent.mouseLocation)
+                return
+            }
+            guard Self.shakeOn else { return }
             let now = e.timestamp
             samples.append((NSEvent.mouseLocation.x, now))
             samples.removeAll { now - $0.t > Self.window }

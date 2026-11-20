@@ -50,8 +50,11 @@ final class HistoryPanel: NSPanel {
         DispatchQueue.main.async { self.invalidateShadow() }
     }
 
-    private func restore(_ e: HistoryStore.Entry) {
-        close()
+    private func restore(_ e: HistoryStore.Entry) { Self.restore(e, at: mouse) }
+
+    /// Holt eine Ablage aus dem Verlauf zurück (auch fürs Menüleistenmenü).
+    static func restore(_ e: HistoryStore.Entry, at mouse: CGPoint = NSEvent.mouseLocation) {
+        current?.close()
         ShelfManager.shared.restore(e, at: mouse)
     }
 

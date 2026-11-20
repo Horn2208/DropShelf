@@ -61,14 +61,57 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct DropShelfApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
+    @ObservedObject private var history = HistoryStore.shared
+    @ObservedObject private var hotkeys = HotKey.shared
+
+    private static let dates: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "de")
+        f.doesRelativeDateFormatting = true  // „Heute, 16:31“
+        f.dateStyle = .short; f.timeStyle = .short
+        return f
+    }()
 
     var body: some Scene {
         MenuBarExtra("DropShelf", systemImage: "tray.and.arrow.down") {
-            Button("Neue Ablage") { ShelfManager.shared.newShelf() }
-            Button("Verlauf…") { HistoryPanel.toggle() }
+            let _ = hotkeys.revision  // Kürzel-Anzeige neu aufbauen, wenn sich ein Kürzel ändert
+            hotkeyButton("Neue Ablage", 2) { ShelfManager.shared.newShelf(at: NSEvent.mouseLocation) }
+            hotkeyButton("Ablage aus der Zwischenablage", 4) { ShelfManager.shared.newShelfFromClipboard() }
+            if HistoryStore.enabled, !history.entries.isEmpty {
+                Section("Vorherige Ablagen") {
+                    ForEach(history.entries.prefix(3)) { e in
+                        Button { HistoryPanel.restore(e) } label: {
+                            Text("\(e.title) — \(Self.dates.string(from: e.date))")
+                            Image(nsImage: Self.icon(e))
+                        }
+                    }
+                }
+                Button("Alle Ablagen…") { HistoryPanel.toggle() }
+            }
+            Divider()
+            Button("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")") {}.disabled(true)
+            Button("Über DropShelf…") { UserDefaults.standard.set(SettingsSection.about.rawValue, forKey: "settingsTab"); SettingsOpener.open() }
             Button("Einstellungen…") { SettingsOpener.open() }.keyboardShortcut(",")
             Divider()
-            Button("Beenden") { NSApplication.shared.terminate(nil) }
+            Button("DropShelf beenden") { NSApplication.shared.terminate(nil) }.keyboardShortcut("q")
         }
+        .menuBarExtraStyle(.menu)
+    }
+
+    /// Menüeintrag mit dem aktuell aufgenommenen Kürzel (nur zur Anzeige; ausgelöst wird es global über Carbon).
+    @ViewBuilder
+    private func hotkeyButton(_ title: String, _ id: UInt32, _ action: @escaping () -> Void) -> some View {
+        let on = UserDefaults.standard.object(forKey: ["hotkeyAirDropEnabled", "hotkeyShelfEnabled", "hotkeyHistoryEnabled", "hotkeyClipboardEnabled"][Int(id) - 1]) as? Bool ?? true
+        if on, let k = HotKey.menuShortcut(id) {
+            Button(title, action: action).keyboardShortcut(k.key, modifiers: k.mods)
+        } else {
+            Button(title, action: action)
+        }
+    }
+
+    private static func icon(_ e: HistoryStore.Entry) -> NSImage {
+        let img = (e.urls.first.map { NSWorkspace.shared.icon(forFile: $0.path) } ?? NSImage()).copy() as! NSImage
+        img.size = NSSize(width: 18, height: 18)
+        return img
     }
 }
