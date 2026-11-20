@@ -32,6 +32,8 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
     private let actions: ActionsPanel
     private var expandSub: AnyCancellable?
     private var tintSub: AnyCancellable?
+    private var resizing = false  // Auf-/Zuklapp-Animation läuft: Schatten/Glas erst am Ende nachziehen
+    private var resizeGen = 0     // Umkehr mitten in der Animation: nur der letzte Abschluss zählt
 
     init(shelf: Shelf, origin: CGPoint) {
         self.shelf = shelf
@@ -52,8 +54,11 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
         let host = NSHostingView(rootView: ShelfView(shelf: shelf) { ShelfManager.shared.close(shelf.id) })
         contentView = GlassKit.wrap(host, radius: ShelfView.radius)
         GlassKit.retint(contentView)
-        tintSub = NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
-            .sink { [weak self] _ in GlassKit.retint(self?.contentView) }
+        // Neu anwenden bei Regler-Änderung und wenn SwiftUI neue Glas-Ebenen anlegt (Kapsel/Knöpfe bei Dateien, Detail-Ansicht).
+        tintSub = Publishers.MergeMany(
+            NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification).map { _ in () }.eraseToAnyPublisher(),
+            shelf.$items.map { _ in () }.eraseToAnyPublisher(), shelf.$expanded.map { _ in () }.eraseToAnyPublisher())
+            .sink { [weak self] _ in GlassKit.retintSoon(self?.contentView) }
 
         actions.anchorWindow = self
         clampToScreen()
@@ -69,13 +74,21 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
             let f = self.clamped(NSRect(x: old.midX - size.width / 2, y: old.maxY - size.height, width: size.width, height: size.height))
             if Motion.enabled {
                 // Während der Animation lösen, sonst verschiebt AppKit das Kindfenster zusätzlich zur eigenen Animation.
+                // Unterbrechbar: Der neue Rahmen geht vom aktuellen (Zwischen-)Rahmen aus, die Animation zielt einfach neu.
                 self.removeChildWindow(self.actions)
+                self.resizing = true
+                self.resizeGen += 1
+                let gen = self.resizeGen
                 NSAnimationContext.runAnimationGroup({ c in
-                    c.duration = 0.22  // Dropover: ≈0,2 s
-                    c.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 0.9, 0.3, 1)
+                    // Aufklappen: Ease-out 0,24 s; Zuklappen halb so lang mit Ease-in (Schließen geht schneller).
+                    c.duration = open ? Motion.Curve.expand : Motion.Curve.collapse
+                    c.timingFunction = open ? Motion.Curve.enter : Motion.Curve.exit
                     self.animator().setFrame(f, display: true)
                     self.actions.animator().setFrame(self.actionsFrame(for: f), display: true)
                 }, completionHandler: { MainActor.assumeIsolated {
+                    guard gen == self.resizeGen else { return }
+                    self.resizing = false
+                    self.windowDidResize(Notification(name: NSWindow.didResizeNotification))
                     self.actions.setFrame(self.actionsFrame(for: self.frame), display: true)
                     if self.isVisible { self.addChildWindow(self.actions, ordered: .above) }
                 } })
@@ -93,7 +106,7 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
         alphaValue = 0
         DispatchQueue.main.async {
             withAnimation(Motion.pop) { self.shelf.appeared = true }
-            NSAnimationContext.runAnimationGroup { $0.duration = 0.2; self.animator().alphaValue = 1 }
+            NSAnimationContext.runAnimationGroup { $0.duration = 0.2; $0.timingFunction = Motion.Curve.enter; self.animator().alphaValue = 1 }
             GlassKit.retint(self.contentView)  // Glas-Ebenen gibt es erst auf dem Bildschirm
         }
     }
@@ -101,9 +114,10 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
     /// Kurz schrumpfen + ausblenden, dann `done`.
     func animateOut(_ done: @escaping @MainActor () -> Void) {
         guard Motion.userOn else { done(); return }
-        withAnimation(Motion.pop) { shelf.closing = true }
+        withAnimation(Motion.close) { shelf.closing = true }
         NSAnimationContext.runAnimationGroup({ c in
-            c.duration = 0.15
+            c.duration = Motion.Curve.collapse
+            c.timingFunction = Motion.Curve.exit
             self.animator().alphaValue = 0
             self.actions.animator().alphaValue = 0
         }, completionHandler: { MainActor.assumeIsolated { done() } })
@@ -161,13 +175,16 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
         super.sendEvent(event)
     }
 
-    func windowDidMove(_ notification: Notification) { ShelfManager.shared.save() }  // Aktionsleiste folgt als Kindfenster
+    func windowDidMove(_ notification: Notification) {
+        ShelfManager.shared.save()  // Aktionsleiste folgt als Kindfenster
+        // Beim Verschieben (`performDrag`, Schlüsselfenster per Klick) baut das System sein Glas um; neue Filter fängt
+        // `BackdropPatch` ab, falls dabei eine neue Glas-Ebene entsteht, bekommt sie hier ihre Werte (sonst nur Lesen).
+        GlassKit.retintSoon(contentView)
+    }
 
-    // Schlüsselstatus-Wechsel kann das System-Glas neu aufbauen → Lichtbrechung nachziehen.
-    func windowDidBecomeKey(_ notification: Notification) { GlassKit.retint(contentView) }
-    func windowDidResignKey(_ notification: Notification) { GlassKit.retint(contentView) }
 
     func windowDidResize(_ notification: Notification) {
+        guard !resizing else { return }
         invalidateShadow()
         GlassKit.retint(contentView)
     }
