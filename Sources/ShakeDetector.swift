@@ -39,6 +39,7 @@ final class ShakeDetector {
     private var monitors: [Any] = []
     private var samples: [(x: CGFloat, t: TimeInterval)] = []
     private var downChange = 0
+    private var carrying = false  // Zug trägt Daten (einmal pro Zug ermittelt statt bei jedem Mausereignis)
     private var fired = false
 
     /// Gleicht den Monitor an die Einstellung an (beim Start und bei Änderung des Schalters).
@@ -68,13 +69,14 @@ final class ShakeDetector {
     private func handle(_ e: NSEvent) {
         switch e.type {
         case .leftMouseDown:
-            samples = []; fired = false
+            samples = []; fired = false; carrying = false
             downChange = NSPasteboard(name: .drag).changeCount
         case .leftMouseUp:
             samples = []; fired = false
         case .leftMouseDragged:
             // Nur wenn der Zug etwas trägt (Drag-Pasteboard hat sich seit mouseDown geändert); ein Schütteln pro Zug.
-            guard !fired, NSPasteboard(name: .drag).changeCount != downChange else { return }
+            if !carrying { carrying = NSPasteboard(name: .drag).changeCount != downChange }  // Pasteboard-Abfrage = IPC
+            guard !fired, carrying else { return }
             if let m = Self.modifier, e.modifierFlags.contains(m) {
                 fired = true; samples = []
                 ShelfManager.shared.newShelf(at: NSEvent.mouseLocation)

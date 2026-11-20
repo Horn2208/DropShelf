@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
         ShelfRecord.selfCheck()
         ShakeDetector.selfCheck()
+        BackdropPatch.selfCheck()
         Task {  // Drop-Auflösung: Datei bleibt Datei, Text wird Cache-Datei
             let f = URL(fileURLWithPath: "/etc/hosts")
             let a = await Shelf.resolve(NSItemProvider(object: f as NSURL))
@@ -37,6 +38,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let shelf = ShelfManager.shared.activeShelf
             seed.split(separator: ":").forEach { shelf?.add(URL(fileURLWithPath: String($0))) }
             if d.bool(forKey: "DebugDetail") { DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { shelf?.expanded = true } }
+            // `-DebugExpandLoop N`: N-mal auf-/zuklappen und Bildraten der Übergänge loggen (EXPAND-FRAMES).
+            let loops = d.integer(forKey: "DebugExpandLoop")
+            if loops > 0, #available(macOS 14, *), let shelf {
+                for i in 0..<loops {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5 + Double(i) * 1.0) {
+                        guard let view = NSApp.windows.first(where: { ($0 as? ShelfPanel)?.shelf === shelf })?.contentView else { return }
+                        FrameMeter.measure(view, seconds: 0.45, tag: shelf.expanded ? "collapse" : "expand")
+                        shelf.expanded.toggle()
+                    }
+                }
+            }
         }
         if d.bool(forKey: "DebugOpenHistory") {
             if HistoryStore.shared.entries.isEmpty {
@@ -124,3 +136,35 @@ struct DropShelfApp: App {
         return img
     }
 }
+
+#if DEBUG
+/// Nur Debug: zählt Bilder per Display-Link während eines Übergangs; „late“ = Abstand > 1,5 Bildzeiten (Hänger).
+@available(macOS 14, *)
+@MainActor
+final class FrameMeter: NSObject {
+    private var stamps: [CFTimeInterval] = []
+    private var frame: CFTimeInterval = 0
+    private var link: CADisplayLink?
+    private let tag: String
+    private let start = CACurrentMediaTime()
+
+    private init(tag: String) { self.tag = tag }
+
+    static func measure(_ view: NSView, seconds: Double, tag: String) {
+        let m = FrameMeter(tag: tag)
+        m.link = view.displayLink(target: m, selector: #selector(tick(_:)))
+        m.link?.add(to: .main, forMode: .common)
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds) { m.finish() }
+    }
+
+    @objc private func tick(_ l: CADisplayLink) { stamps.append(l.timestamp); frame = l.targetTimestamp - l.timestamp }
+
+    private func finish() {
+        link?.invalidate()
+        let gaps = zip(stamps.dropFirst(), stamps).map { $0 - $1 }
+        let first = (stamps.first ?? start) - start
+        NSLog("EXPAND-FRAMES %@ frames=%d hz=%.0f firstFrameAfter=%.1fms maxGap=%.1fms late=%d", tag, stamps.count,
+              frame > 0 ? 1 / frame : 0, first * 1000, (gaps.max() ?? 0) * 1000, gaps.filter { $0 > frame * 1.5 }.count)
+    }
+}
+#endif

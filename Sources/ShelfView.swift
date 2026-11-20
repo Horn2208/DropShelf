@@ -23,13 +23,17 @@ struct ShelfView: View {
             WindowDragArea()
             Group {
                 if detail {
+                    // Feste Größen: Während das Fenster auf-/zuklappt, muss SwiftUI den Inhalt nicht jedes Bild neu
+                    // layouten (Raster-Spalten fließen sonst bei jeder Breite um); das Fenster schneidet ihn nur zu.
                     DetailView(shelf: shelf, ns: ns) { shelf.expanded = false }
+                        .frame(width: ShelfPanel.detailSize.width, height: ShelfPanel.detailSize.height)
                         .transition(swap)
                 } else {
                     VStack(spacing: 0) {
                         topBar
                         content
                     }
+                    .frame(width: ShelfPanel.width, height: ShelfPanel.collapsedHeight)
                     .transition(swap)
                 }
             }
@@ -54,7 +58,7 @@ struct ShelfView: View {
         }
         .clipShape(shape)
         .overlay(shape.strokeBorder(targeted ? Color.accentColor : (GlassKit.liquid ? .clear : edge), lineWidth: targeted ? 2.5 : 1).allowsHitTesting(false))
-        .animation(Motion.pop, value: detail)
+        .animation(detail ? Motion.pop : Motion.close, value: detail)  // Zuklappen schneller (Ease-in)
         .animation(Motion.smooth, value: shelf.items.isEmpty)
         .animation(Motion.snappy, value: targeted)
         .onHover { shelf.setHover("main", $0) }
@@ -141,13 +145,27 @@ struct Thumb: View {
     var maxH: CGFloat = 130
     var shadow = true
     @State private var image: NSImage
-    @State private var loaded = false
+    @State private var loaded: Bool
+
+    /// Vorschaubilder und Symbole bleiben im Speicher: Beim Auf-/Zuklappen entstehen neue `Thumb`s – ohne Cache würde
+    /// jedes Mal Quick Look neu rechnen und mitten in der Animation Bild für Bild nachladen.
+    private static let cache = NSCache<NSString, NSImage>()
+    private var key: NSString { "\(url.path)|\(Int(maxW))x\(Int(maxH))" as NSString }
 
     init(url: URL, maxW: CGFloat = 110, maxH: CGFloat = 130, shadow: Bool = true) {
         self.url = url; self.maxW = maxW; self.maxH = maxH; self.shadow = shadow
-        let icon = NSWorkspace.shared.icon(forFile: url.path)
-        icon.size = NSSize(width: 64, height: 64)
-        _image = State(initialValue: icon)
+        let cached = Self.cache.object(forKey: "\(url.path)|\(Int(maxW))x\(Int(maxH))" as NSString)
+        _loaded = State(initialValue: cached != nil)
+        _image = State(initialValue: cached ?? Self.icon(url))
+    }
+
+    private static func icon(_ url: URL) -> NSImage {
+        let k = "icon|\(url.path)" as NSString
+        if let i = cache.object(forKey: k) { return i }
+        let i = NSWorkspace.shared.icon(forFile: url.path)
+        i.size = NSSize(width: 64, height: 64)
+        cache.setObject(i, forKey: k)
+        return i
     }
 
     private var fitted: CGSize {
@@ -166,12 +184,16 @@ struct Thumb: View {
             .overlay(shape.strokeBorder(Color.white.opacity(loaded ? 0.15 : 0), lineWidth: 0.5))
             .shadow(color: .black.opacity(shadow && loaded ? 0.28 : 0), radius: 6, y: 2)
             .task(id: url) {
+                guard !loaded else { return }
                 let req = QLThumbnailGenerator.Request(
                     fileAt: url, size: CGSize(width: maxW, height: maxH),
                     scale: NSScreen.main?.backingScaleFactor ?? 2, representationTypes: .thumbnail)
                 if let rep = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: req) {
-                    image = rep.nsImage
+                    // Fertig dekodiertes CGImage statt der lazy NSImage-Darstellung: beim Aufklappen nichts mehr zu dekodieren.
+                    let img = NSImage(cgImage: rep.cgImage, size: rep.nsImage.size)
+                    image = img
                     loaded = true
+                    Self.cache.setObject(img, forKey: key)
                 }
             }
     }
