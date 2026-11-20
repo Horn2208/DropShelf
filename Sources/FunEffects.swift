@@ -18,6 +18,7 @@ enum FunEffects {
 
     /// Troll-Builds: Sound/Bild eingebaut und standardmäßig an.
     static func registerDefaults() {
+        UserDefaults.standard.register(defaults: ["autoCloseEmptyEnabled": true, "autoCloseEmptySeconds": 5.0])
         #if TROLL
         UserDefaults.standard.register(defaults: [
             "funSoundEnabled": true, "funImageEnabled": true, "funSoundMaxSeconds": 0.3,

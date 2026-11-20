@@ -37,6 +37,8 @@ final class Shelf: ObservableObject, Identifiable {
     var showsActions: Bool { hovering && (!items.isEmpty || dropping) }
     private var hoverSources = Set<String>()
     private var hoverTask: Task<Void, Never>?
+    private var idleTask: Task<Void, Never>?
+    private var idleArmed = false  // leer geöffnet und noch nie befüllt
     var onChange: (() -> Void)?
     var onEmpty: (() -> Void)?
     private var scoped: [URL] = []
@@ -65,6 +67,7 @@ final class Shelf: ObservableObject, Identifiable {
     func setHover(_ key: String, _ on: Bool) {
         hoverTask?.cancel()
         if on {
+            idleTask?.cancel()
             hoverSources.insert(key)
             if !hovering { hovering = true }
             if key.hasPrefix("drop") && !dropping { dropping = true }  // "drop", "dropbtn", "droprow"
@@ -74,7 +77,22 @@ final class Shelf: ObservableObject, Identifiable {
         guard hoverSources.isEmpty else { return }
         hoverTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 250_000_000)
-            if !Task.isCancelled && self.hoverSources.isEmpty { self.hovering = false; self.dropping = false }
+            if !Task.isCancelled && self.hoverSources.isEmpty { self.hovering = false; self.dropping = false; self.restartIdleClose() }
+        }
+    }
+
+    /// Leere Ablage schließt sich nach X s von selbst (nur wenn sie leer geöffnet und nie befüllt wurde).
+    /// Pausiert unter Maus/Drag, startet danach mit voller Frist neu; Ablegen einer Datei beendet es.
+    func armIdleClose() { idleArmed = items.isEmpty; restartIdleClose() }
+
+    private func restartIdleClose() {
+        idleTask?.cancel()
+        let d = UserDefaults.standard
+        guard idleArmed, items.isEmpty, !hovering, !expanded, d.object(forKey: "autoCloseEmptyEnabled") as? Bool ?? true else { return }
+        let secs = min(max(d.object(forKey: "autoCloseEmptySeconds") as? Double ?? 5, 3), 30)
+        idleTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(secs * 1_000_000_000))
+            if !Task.isCancelled && self.idleArmed && self.items.isEmpty && !self.hovering && !self.closing { self.onEmpty?() }
         }
     }
 
@@ -92,6 +110,7 @@ final class Shelf: ObservableObject, Identifiable {
         // Drag-Drop-URLs liefern evtl. false (Zugriff schon implizit erteilt) – trotzdem weitermachen.
         if url.startAccessingSecurityScopedResource() { scoped.append(url) }
         items.append(Item(url: url, bookmark: Self.bookmark(url)))  // nil = nur für diese Sitzung
+        idleArmed = false; idleTask?.cancel()
         onChange?()
     }
 
@@ -257,6 +276,7 @@ final class ShelfManager {
         panels[shelf.id] = panel
         panel.orderFrontRegardless()
         panel.popIn()
+        shelf.armIdleClose()
         if origin == nil { save() }
     }
 

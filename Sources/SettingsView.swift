@@ -491,6 +491,8 @@ private struct ActivationPage: View {
 
 private struct InteractionsPage: View {
     @AppStorage("autoCloseWhenEmpty") private var autoClose = true
+    @AppStorage("autoCloseEmptyEnabled") private var idleOn = true
+    @AppStorage("autoCloseEmptySeconds") private var idleSecs = 5.0
     @AppStorage("askClearAfterAirDrop") private var askClear = true
     @AppStorage("viewMode") private var mode = "grid"
 
@@ -498,6 +500,12 @@ private struct InteractionsPage: View {
         SettingsGroup(title: "Verhalten") {
             SettingsToggleRow(symbol: "xmark.rectangle", title: "Ablage schließen, wenn sie leer ist",
                               subtitle: "Nach dem Herausziehen der letzten Datei schließt sich das Fenster.", isOn: $autoClose)
+            SettingsToggleRow(symbol: "timer", title: "Leere Ablage automatisch schließen",
+                              subtitle: "Eine Ablage, in die nichts gelegt wird, schließt sich nach der eingestellten Zeit.", isOn: $idleOn)
+            SettingsRow(symbol: "hourglass", title: "Nach \(Int(idleSecs)) s") {
+                Slider(value: $idleSecs, in: 3...30, step: 1).frame(width: 140)
+            }
+            .disabled(!idleOn)
             SettingsToggleRow(symbol: "airdrop", title: "Nach AirDrop fragen",
                               subtitle: "Ob die Ablage nach dem Senden geleert werden soll.", isOn: $askClear)
             SettingsRow(symbol: "square.grid.2x2", title: "Standard-Ansicht") {
