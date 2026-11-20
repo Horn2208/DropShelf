@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		18977AD507164C5B2EE88B1B /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 9850E7DDDA0C3A9ECEA3900F /* Shaders.metal */; };
 		3D9E2E697360DD20E62CA0D1 /* Glass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834B52418C08BA9A4A1C1A57 /* Glass.swift */; };
 		4103671F8B28887C8A6465AC /* History.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD6CBCB085D4DADCAA48184 /* History.swift */; };
 		43F93387EB943470CA1F6218 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE810BB12920FF0A67E1BA87 /* Assets.xcassets */; };
@@ -38,7 +37,6 @@
 		7F8C49819561928CB7E089AD /* DetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailView.swift; sourceTree = "<group>"; };
 		834B52418C08BA9A4A1C1A57 /* Glass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glass.swift; sourceTree = "<group>"; };
 		93E26FA53FBA96D20AFA0C78 /* DragOutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragOutView.swift; sourceTree = "<group>"; };
-		9850E7DDDA0C3A9ECEA3900F /* Shaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
 		9931FD6B3B65DB5937EFC476 /* Actions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Actions.swift; sourceTree = "<group>"; };
 		AAD6CBCB085D4DADCAA48184 /* History.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = History.swift; sourceTree = "<group>"; };
 		ADC0DA491D3EA1EB2ACA0B54 /* FunEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FunEffects.swift; sourceTree = "<group>"; };
@@ -81,7 +79,6 @@
 				D1D2B08962DB1244729A6DEF /* HistoryPanel.swift */,
 				198BAAE92DAB36DD31BE5869 /* HotKey.swift */,
 				12124997F6C0E2E8E070E9D1 /* SettingsView.swift */,
-				9850E7DDDA0C3A9ECEA3900F /* Shaders.metal */,
 				2AC98AF7AAA240CDA4A0CB65 /* ShakeDetector.swift */,
 				2A9C0937FE4AFE7C9BFFB658 /* ShelfPanel.swift */,
 				6F4E26B13F44FFC2D7F1CA8D /* ShelfStore.swift */,
@@ -181,7 +178,6 @@
 				CD5D85133085963F0CD39C10 /* HistoryPanel.swift in Sources */,
 				CF160FDE246D2C50F05D34DD /* HotKey.swift in Sources */,
 				B2DC12CFA83FBA83177D38EA /* SettingsView.swift in Sources */,
-				18977AD507164C5B2EE88B1B /* Shaders.metal in Sources */,
 				794E23277E3F242A3EEC9847 /* ShakeDetector.swift in Sources */,
 				8A1FA6E994B3A67CF2171561 /* ShelfPanel.swift in Sources */,
 				BFEB99C9D98DA604EE9AC1FB /* ShelfStore.swift in Sources */,

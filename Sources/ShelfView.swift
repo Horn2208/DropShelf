@@ -47,6 +47,9 @@ struct ShelfView: View {
                         .frame(height: 90)
                 }
                 .allowsHitTesting(false)
+            } else {
+                // Liquid Glass: Mitte dunkel getönt (Regler), der Rand bleibt frei für die Lichtbrechung.
+                shape.fill(Color.black.opacity(0.5 * glass)).padding(20).blur(radius: 14).allowsHitTesting(false)
             }
         }
         .clipShape(shape)
@@ -97,7 +100,7 @@ struct ShelfView: View {
             ForEach(Array(shown.enumerated()), id: \.element.id) { i, item in
                 let d = CGFloat(i - (shown.count - 1)) * 3  // ältere Dateien liegen 3 pt versetzt dahinter
                 Thumb(url: item.url, maxW: 100, maxH: 104).matchedGeometryEffect(id: item.id, in: ns).offset(x: d, y: -d).allowsHitTesting(false)
-                    .transition(.liquid)
+                    .transition(Motion.enabled ? .scale(scale: 0.6).combined(with: .opacity) : .opacity)
             }
         }
         .animation(Motion.pop, value: shelf.items.count)

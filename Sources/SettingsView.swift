@@ -245,6 +245,8 @@ private struct ShortcutRecorder: View {
 
 private struct AppearanceTab: View {
     @AppStorage("glassIntensity") private var glass = 0.4
+    @AppStorage("liquidRefraction") private var refraction = true
+    @AppStorage("refractionStrength") private var strength = 0.6
     @AppStorage("animationsEnabled") private var anim = true
     @AppStorage("funSoundEnabled") private var soundOn = false
     @AppStorage("funSoundPath") private var soundPath = ""
@@ -257,6 +259,16 @@ private struct AppearanceTab: View {
                 VStack(alignment: .leading) {
                     Text("Glas-Intensität")
                     Slider(value: $glass, in: 0...1) { Text("Glas-Intensität") } minimumValueLabel: { Text("klar") } maximumValueLabel: { Text("dunkel") }
+                }
+                if GlassKit.liquid {
+                    Toggle("Liquid Glass mit Lichtbrechung", isOn: $refraction)
+                    VStack(alignment: .leading) {
+                        Text("Lichtbrechung am Rand")
+                        Slider(value: $strength, in: 0...1) { Text("Lichtbrechung am Rand") } minimumValueLabel: { Text("leicht") } maximumValueLabel: { Text("stark") }
+                    }
+                    .disabled(!refraction)
+                    Text("Der Inhalt hinter der Ablage wird am Rand wie durch dickes Glas verbogen, mit leichtem Farbsaum.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
                 Toggle("Animationen", isOn: $anim)
                 Text("„Bewegung reduzieren“ in den Systemeinstellungen wird zusätzlich beachtet (nur Einblenden).")

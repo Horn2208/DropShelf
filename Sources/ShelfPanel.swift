@@ -89,11 +89,12 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
     /// Pop beim Öffnen: Fenster fix, Inhalt federt auf, Panel blendet ein.
     func popIn() {
         FunEffects.onPop(screen: screen)
-        guard Motion.userOn else { shelf.appeared = true; return }
+        guard Motion.userOn else { shelf.appeared = true; DispatchQueue.main.async { GlassKit.retint(self.contentView) }; return }
         alphaValue = 0
         DispatchQueue.main.async {
             withAnimation(Motion.pop) { self.shelf.appeared = true }
             NSAnimationContext.runAnimationGroup { $0.duration = 0.2; self.animator().alphaValue = 1 }
+            GlassKit.retint(self.contentView)  // Glas-Ebenen gibt es erst auf dem Bildschirm
         }
     }
 
@@ -162,7 +163,10 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
 
     func windowDidMove(_ notification: Notification) { ShelfManager.shared.save() }  // Aktionsleiste folgt als Kindfenster
 
-    func windowDidResize(_ notification: Notification) { invalidateShadow() }
+    func windowDidResize(_ notification: Notification) {
+        invalidateShadow()
+        GlassKit.retint(contentView)
+    }
 
     /// Form für den Fensterschatten. Ohne sie zeichnet macOS 26+ beim Schlüsselfenster (Klick, Quick Look) einen
     /// eckigen Schatten samt Kante um das ganze Fenster – der „Kasten“ hinter der runden Ablage.

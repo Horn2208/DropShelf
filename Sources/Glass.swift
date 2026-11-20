@@ -33,44 +33,6 @@ enum Motion {
     static func scale(_ from: CGFloat, on: Bool) -> CGFloat { enabled && !on ? from : 1 }
 }
 
-/// Flüssiges Einsaugen (`progress` 0 = normal, 1 = weg): ab macOS 14 Genie-Shader + RGB-Versatz (`Shaders.metal`),
-/// sonst bzw. bei reduzierter Bewegung das bisherige Skalieren auf `fallbackScale`. Animierbar über `Motion.pop`.
-/// Nur für reine SwiftUI-Inhalte (Vorschaubilder): Shader-Effekte rastern immer, auch mit `isEnabled: false`.
-struct LiquidWarp: ViewModifier, Animatable {
-    var progress: CGFloat
-    var fallbackScale: CGFloat = 0.85
-    var target = UnitPoint.top
-    nonisolated var animatableData: CGFloat {
-        get { progress }
-        set { progress = newValue }
-    }
-
-    @State private var size = CGSize(width: 1, height: 1)
-
-    func body(content: Content) -> some View {
-        let p = progress, fade = 1 - min(max(p, 0), 1) * min(max(p, 0), 1)
-        if #available(macOS 14, *), Motion.enabled {
-            let on = abs(p) > 0.002, pt = CGPoint(x: size.width * target.x, y: size.height * target.y)
-            content
-                .distortionEffect(ShaderLibrary.liquidGenie(.float2(size), .float2(pt), .float(Float(p))),
-                                  maxSampleOffset: .zero, isEnabled: on)
-                .layerEffect(ShaderLibrary.liquidAberration(.float2(pt), .float(Float(min(max(p, 0), 1) * 3))),
-                             maxSampleOffset: CGSize(width: 3, height: 3), isEnabled: on)
-                .opacity(fade)
-                .background(GeometryReader { g in Color.clear.onAppear { size = g.size }.onChange(of: g.size) { size = $0 } })
-        } else {
-            content.scaleEffect(Motion.enabled ? 1 - (1 - fallbackScale) * p : 1, anchor: .center).opacity(1 - p)
-        }
-    }
-}
-
-extension AnyTransition {
-    /// Einfliegen/Herausziehen einzelner Vorschaubilder mit dem Flüssig-Effekt.
-    static var liquid: AnyTransition {
-        .modifier(active: LiquidWarp(progress: 1, fallbackScale: 0.6), identity: LiquidWarp(progress: 0, fallbackScale: 0.6))
-    }
-}
-
 /// Fenster-Glas: ab macOS 26 echtes Liquid Glass (`NSGlassEffectView`), davor Effekt-View.
 @MainActor
 enum GlassKit {
@@ -101,7 +63,7 @@ enum GlassKit {
         return fx
     }
 
-    /// Tönung nachziehen, wenn der Regler bewegt wird.
+    /// Tönung und Lichtbrechung nachziehen, wenn die Regler bewegt werden oder sich die Größe ändert.
     static func retint(_ view: NSView?) {
         if #available(macOS 26, *), let g = view as? NSGlassEffectView {
             let a = tintAlpha
@@ -109,7 +71,34 @@ enum GlassKit {
             g.tintColor = NSColor(name: nil) { (ap: NSAppearance) -> NSColor in
                 ap.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
             }
+            if let root = g.layer { refract(root) }
         }
+    }
+
+    /// Lichtbrechung am Rand wie bei Canopy 2: Dessen Glas ist das System-`NSGlassEffectView`, nur der private
+    /// `glassBackground`-Filter auf dessen `CABackdropLayer` ist per KVC kräftiger eingestellt – Inhalt hinter dem Rand
+    /// wird stärker verbogen, mit Farbsaum (chromatische Aberration). Gilt nur für die größte Glasfläche (das Fenster),
+    /// nicht für Glas-Knöpfe. Fehlt der Filter (andere macOS-Version), passiert nichts; Werte aus = Systemstandard.
+    private static func refract(_ root: CALayer) {
+        guard let l = glassLayers(root).max(by: { $0.bounds.width * $0.bounds.height < $1.bounds.width * $1.bounds.height })
+        else { return }
+        let d = UserDefaults.standard
+        let on = d.object(forKey: "liquidRefraction") as? Bool ?? true
+        let s = on ? d.object(forKey: "refractionStrength") as? Double ?? 0.6 : 0
+        let band = 20 + 30 * s, k = "filters.glassBackground."
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        l.setValue(-60 - 160 * s, forKeyPath: k + "inputInnerRefractionAmount")  // Standard: -60 / 20 pt / Blur 5
+        l.setValue(band, forKeyPath: k + "inputInnerRefractionHeight")
+        l.setValue(14 * s, forKeyPath: k + "inputAberrationAmount")
+        l.setValue(band, forKeyPath: k + "inputAberrationHeight")
+        l.setValue(5 - 3 * s, forKeyPath: k + "inputBlurRadius")
+        CATransaction.commit()
+    }
+
+    private static func glassLayers(_ l: CALayer) -> [CALayer] {
+        let own = l.filters?.contains { ($0 as AnyObject).value(forKey: "name") as? String == "glassBackground" } == true
+        return (own ? [l] : []) + (l.sublayers ?? []).flatMap(glassLayers)
     }
 }
 
