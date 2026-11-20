@@ -351,9 +351,10 @@ private func loginText(_ s: SMAppService.Status) -> String {
 }
 
 private struct AppearancePage: View {
-    @AppStorage("glassIntensity") private var glass = 0.4
+    @AppStorage("glassIntensity") private var glass = 0.25
     @AppStorage("liquidRefraction") private var refraction = true
     @AppStorage("refractionStrength") private var strength = 0.6
+    @AppStorage("refractionReach") private var reach = 0.5
     @AppStorage("animationsEnabled") private var anim = true
     @AppStorage("funSoundEnabled") private var soundOn = false
     @AppStorage("funSoundPath") private var soundPath = ""
@@ -370,6 +371,13 @@ private struct AppearancePage: View {
                 SettingsDivider()
                 SettingsRow(symbol: "camera.filters", title: "Lichtbrechung am Rand") { sliderControl($strength, "leicht", "stark") }
                     .disabled(!refraction)
+                SettingsDivider()
+                SettingsRow(symbol: "arrow.left.and.right", title: "Reichweite der Lichtbrechung") { sliderControl($reach, "schmal", "breit") }
+                    .disabled(!refraction)
+                SettingsDivider()
+                SettingsRow(symbol: "drop", title: "Klares Glas mit starker Lichtbrechung") {
+                    Button("Wie Canopy") { glass = 0.1; refraction = true; strength = 1; reach = 0.7 }.controlSize(.small)
+                }
             }
             SettingsDivider()
             SettingsToggleRow(symbol: "wand.and.stars", title: "Animationen",

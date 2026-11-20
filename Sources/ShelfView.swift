@@ -6,7 +6,7 @@ struct ShelfView: View {
     @ObservedObject var shelf: Shelf
     let close: () -> Void
     @State private var targeted = false
-    @AppStorage("glassIntensity") private var glass = 0.4
+    @AppStorage("glassIntensity") private var glass = 0.25
     @Environment(\.colorScheme) private var scheme
     @Namespace private var ns  // Vorschau „fliegt“ ins Raster der Detail-Ansicht
     static let animationDuration = 0.22
@@ -49,7 +49,7 @@ struct ShelfView: View {
                 .allowsHitTesting(false)
             } else {
                 // Liquid Glass: Mitte dunkel getönt (Regler), der Rand bleibt frei für die Lichtbrechung.
-                shape.fill(Color.black.opacity(0.5 * glass)).padding(20).blur(radius: 14).allowsHitTesting(false)
+                shape.fill(Color.black.opacity(0.06 + 0.5 * glass)).padding(20).blur(radius: 14).allowsHitTesting(false)
             }
         }
         .clipShape(shape)
@@ -84,6 +84,7 @@ struct ShelfView: View {
                     .bounceSymbol(targeted)
                 Text("Dateien hierher ziehen").font(.system(size: 12)).foregroundStyle(.secondary)
             }
+            .legible()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .allowsHitTesting(false)
         } else {
@@ -123,6 +124,7 @@ struct ShelfView: View {
                 Image(systemName: "chevron.right").font(.system(size: 9, weight: .bold)).bounceSymbol(n)
             }
             .foregroundStyle(Color.primary.opacity(0.9))
+            .legible()
             .padding(.horizontal, 12).frame(height: 26)
             .glassBG(Capsule(), line: 0.5)
             .frame(maxWidth: 170)

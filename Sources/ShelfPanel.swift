@@ -163,6 +163,10 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
 
     func windowDidMove(_ notification: Notification) { ShelfManager.shared.save() }  // Aktionsleiste folgt als Kindfenster
 
+    // Schlüsselstatus-Wechsel kann das System-Glas neu aufbauen → Lichtbrechung nachziehen.
+    func windowDidBecomeKey(_ notification: Notification) { GlassKit.retint(contentView) }
+    func windowDidResignKey(_ notification: Notification) { GlassKit.retint(contentView) }
+
     func windowDidResize(_ notification: Notification) {
         invalidateShadow()
         GlassKit.retint(contentView)

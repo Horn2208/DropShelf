@@ -38,8 +38,13 @@ enum Motion {
 enum GlassKit {
     static var liquid: Bool { if #available(macOS 26, *) { true } else { false } }
 
+    /// Zahl aus den Einstellungen (auch als Startargument `-key 0.5`, das als Text ankommt).
+    private static func num(_ key: String, _ fallback: Double) -> Double {
+        UserDefaults.standard.object(forKey: key) == nil ? fallback : UserDefaults.standard.double(forKey: key)
+    }
+
     /// Tönung aus der Einstellung „Glas-Intensität“.
-    private static var tintAlpha: CGFloat { 0.02 + 0.3 * CGFloat(UserDefaults.standard.object(forKey: "glassIntensity") as? Double ?? 0.4) }
+    private static var tintAlpha: CGFloat { 0.02 + 0.3 * num("glassIntensity", 0.25) }
 
     static func wrap(_ content: NSView, radius: CGFloat) -> NSView {
         if #available(macOS 26, *) {
@@ -75,24 +80,42 @@ enum GlassKit {
         }
     }
 
-    /// Lichtbrechung am Rand wie bei Canopy 2: Dessen Glas ist das System-`NSGlassEffectView`, nur der private
-    /// `glassBackground`-Filter auf dessen `CABackdropLayer` ist per KVC kräftiger eingestellt – Inhalt hinter dem Rand
-    /// wird stärker verbogen, mit Farbsaum (chromatische Aberration). Gilt nur für die größte Glasfläche (das Fenster),
-    /// nicht für Glas-Knöpfe. Fehlt der Filter (andere macOS-Version), passiert nichts; Werte aus = Systemstandard.
+    /// Lichtbrechung wie bei Canopy 2: Dessen Glas nutzt denselben privaten `glassBackground`-Filter (auf dem
+    /// `CABackdropLayer` des System-Glases); die Werte stammen aus Canopys Binary (Faktor `refraction`/`refractionReach`):
+    /// innen −40·r / 20·r·w, außen 8·r / 6,25·r·w, Distanz −1/−0,5, Deckkraft 1, Farbsaum 7, kein Blur, Fläche ungetönt.
+    /// Hier r = 0,6…2,5 („Lichtbrechung am Rand“) und w = 0,7…1,4 („Reichweite“); „Glas-Intensität“ steuert Klarheit
+    /// (MaxLuma) und Blur. Nur die größte Glasfläche (das Fenster), nicht Glas-Knöpfe. Aus = gemerkte Systemwerte.
+    /// Filterwerte wirken erst, wenn `filters` neu zugewiesen wird. Fehlt der Filter (andere macOS-Version), passiert nichts.
     private static func refract(_ root: CALayer) {
         guard let l = glassLayers(root).max(by: { $0.bounds.width * $0.bounds.height < $1.bounds.width * $1.bounds.height })
         else { return }
-        let d = UserDefaults.standard
-        let on = d.object(forKey: "liquidRefraction") as? Bool ?? true
-        let s = on ? d.object(forKey: "refractionStrength") as? Double ?? 0.6 : 0
-        let band = 20 + 30 * s, k = "filters.glassBackground."
+        let d = UserDefaults.standard, k = "filters.glassBackground."
+        let keys = ["inputInnerRefractionAmount", "inputInnerRefractionHeight", "inputOuterRefractionAmount", "inputOuterRefractionHeight",
+                    "inputRefractionDistance0", "inputRefractionDistance1", "inputRefractionOpacity", "inputAberrationAmount",
+                    "inputAberrationHeight", "inputBlurRadius", "inputFaceColorMatrixBlack", "inputFaceColorMatrixWhite",
+                    "inputFaceColorMatrixSaturation", "inputFaceColorMatrixMaxLuma", "inputFaceColorMatrixMaxLumaSDR"]
+        // Systemwerte einmal pro Ebene merken (an der Ebene selbst), damit „aus“ exakt zurückstellt.
+        let orig = l.value(forKey: "dsGlassOrig") as? [String: Any] ?? {
+            let o = Dictionary(uniqueKeysWithValues: keys.map { ($0, l.value(forKeyPath: k + $0) ?? 0) })
+            l.setValue(o, forKey: "dsGlassOrig")
+            return o
+        }()
+        var v: [String: Any] = orig
+        if d.object(forKey: "liquidRefraction") == nil || d.bool(forKey: "liquidRefraction") {
+            let r = 0.6 + 1.9 * num("refractionStrength", 0.6)
+            let w = 0.7 + 0.7 * num("refractionReach", 0.5)
+            let glass = num("glassIntensity", 0.25)
+            v = ["inputInnerRefractionAmount": -40 * r, "inputInnerRefractionHeight": 20 * r * w,
+                 "inputOuterRefractionAmount": 8 * r, "inputOuterRefractionHeight": 6.25 * r * w,
+                 "inputRefractionDistance0": -1, "inputRefractionDistance1": -0.5, "inputRefractionOpacity": 1,
+                 "inputAberrationAmount": 6 * r, "inputAberrationHeight": 20 * r * w, "inputBlurRadius": 4 * glass,
+                 "inputFaceColorMatrixBlack": 0, "inputFaceColorMatrixWhite": 1, "inputFaceColorMatrixSaturation": 1,
+                 "inputFaceColorMatrixMaxLuma": 1 - 0.55 * glass, "inputFaceColorMatrixMaxLumaSDR": 1 - 0.55 * glass]
+        }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        l.setValue(-60 - 160 * s, forKeyPath: k + "inputInnerRefractionAmount")  // Standard: -60 / 20 pt / Blur 5
-        l.setValue(band, forKeyPath: k + "inputInnerRefractionHeight")
-        l.setValue(14 * s, forKeyPath: k + "inputAberrationAmount")
-        l.setValue(band, forKeyPath: k + "inputAberrationHeight")
-        l.setValue(5 - 3 * s, forKeyPath: k + "inputBlurRadius")
+        for (key, val) in v { l.setValue(val, forKeyPath: k + key) }
+        l.filters = l.filters  // sonst übernimmt der Renderer die geänderten Werte nicht
         CATransaction.commit()
     }
 
@@ -128,6 +151,9 @@ extension View {
     @ViewBuilder func glassBG<S: InsettableShape>(_ shape: S, line: CGFloat = 1) -> some View {
         if #available(macOS 26, *) { glassEffect(.regular.interactive(), in: shape) } else { modifier(MaterialBG(shape: shape, line: line)) }
     }
+
+    /// Leiser Schatten, damit Symbole und Text auf klarem Glas über hellem Hintergrund lesbar bleiben.
+    func legible() -> some View { shadow(color: .black.opacity(0.5), radius: 2, y: 0.5) }
 
     /// Pop beim Öffnen (0,85 → 1) und Schließen (1 → 0,9) mit Deckkraft, Mitte als Anker.
     /// Animiert wird von außen über `withAnimation(Motion.pop)` (`ShelfPanel.popIn()`/`animateOut(_:)`).
@@ -168,6 +194,7 @@ struct GlassCircleLabel: View {
         Image(systemName: symbol)
             .font(.system(size: size * 0.43, weight: .semibold))
             .foregroundStyle(Color.primary.opacity(0.85))
+            .legible()
             .frame(width: size, height: size)
             .glassBG(Circle())
     }
