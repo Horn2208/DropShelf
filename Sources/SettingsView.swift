@@ -31,13 +31,14 @@ enum SettingsOpener {
 }
 
 enum SettingsSection: String, CaseIterable, Identifiable {
-    case general, appearance, shortcuts, activation, interactions, actions, history, fun, perms, about
+    case general, appearance, shortcuts, clipboard, activation, interactions, actions, history, fun, perms, about
     var id: String { rawValue }
     var title: String {
         switch self {
         case .general: "Allgemein"
         case .appearance: "Aussehen"
         case .shortcuts: "Kürzel"
+        case .clipboard: "Zwischenablage"
         case .activation: "Aktivierung"
         case .interactions: "Interaktionen"
         case .actions: "Aktionen"
@@ -52,6 +53,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .general: "gearshape"
         case .appearance: "paintbrush"
         case .shortcuts: "command"
+        case .clipboard: "doc.on.clipboard"
         case .activation: "hand.draw"
         case .interactions: "rectangle.on.rectangle"
         case .actions: "square.grid.2x2"
@@ -67,6 +69,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .general: "Anmelden Start Ablage öffnen"
         case .appearance: "Glas Intensität Liquid Lichtbrechung Reichweite Canopy Animationen"
         case .shortcuts: "Tastenkürzel Hotkey Neue Ablage Zwischenablage AirDrop Verlauf"
+        case .clipboard: "Verlauf kopiert Text Bilder Dateien Limit Ausgeschlossene Apps Löschen Passwort ⌃V"
         case .activation: "Schütteln Empfindlichkeit Modifikatortaste"
         case .interactions: "Schließen leer AirDrop fragen Ansicht Raster Liste"
         case .actions: "Knöpfe Quick Look ZIP Teilen Finder Pfade"
@@ -105,7 +108,7 @@ struct SettingsView: View {
     @Namespace private var ns
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let top: [SettingsSection] = [.general, .appearance, .shortcuts]
+    private let top: [SettingsSection] = [.general, .appearance, .shortcuts, .clipboard]
     private let tray: [SettingsSection] = [.activation, .interactions, .actions, .history, .fun]
     private let bottom: [SettingsSection] = [.perms, .about]
 
@@ -121,6 +124,7 @@ struct SettingsView: View {
                 case .general: GeneralPage()
                 case .appearance: AppearancePage()
                 case .shortcuts: ShortcutsPage()
+                case .clipboard: ClipboardPage()
                 case .activation: ActivationPage()
                 case .interactions: InteractionsPage()
                 case .actions: ActionsPage()
@@ -429,6 +433,7 @@ private struct ShortcutsPage: View {
     @AppStorage("hotkeyClipboardEnabled") private var clipOn = true
     @AppStorage("hotkeyAirDropEnabled") private var airOn = true
     @AppStorage("hotkeyHistoryEnabled") private var histOn = true
+    @AppStorage("hotkeyClipHistoryEnabled") private var clipHistOn = true
 
     var body: some View {
         SettingsGroup(title: "Globale Kürzel",
@@ -437,11 +442,13 @@ private struct ShortcutsPage: View {
             shortcut("Zwischenablage", "doc.on.clipboard", 4, $clipOn)
             shortcut("Aktive Ablage per AirDrop", "airdrop", 1, $airOn)
             shortcut("Verlauf öffnen", "clock.arrow.circlepath", 3, $histOn)
+            shortcut("Zwischenablage-Verlauf", "doc.on.doc", 5, $clipHistOn)
         }
         .onChange(of: shelfOn) { _ in HotKey.shared.sync() }
         .onChange(of: clipOn) { _ in HotKey.shared.sync() }
         .onChange(of: airOn) { _ in HotKey.shared.sync() }
         .onChange(of: histOn) { _ in HotKey.shared.sync() }
+        .onChange(of: clipHistOn) { _ in HotKey.shared.sync() }
     }
 
     private func shortcut(_ title: String, _ symbol: String, _ id: UInt32, _ on: Binding<Bool>) -> some View {
@@ -500,6 +507,67 @@ private struct InteractionsPage: View {
     }
 }
 
+private struct ClipboardPage: View {
+    @AppStorage("clipboardEnabled") private var on = true
+    @AppStorage("clipboardLimit") private var limit = 200
+    @AppStorage("clipboardImages") private var images = true
+    @ObservedObject private var store = ClipboardStore.shared
+    @State private var excluded = ClipboardStore.excluded
+
+    var body: some View {
+        SettingsGroup(title: "Zwischenablage-Verlauf",
+                      footer: "⌃V öffnet den Verlauf an der Maus (Kürzel änderbar unter „Kürzel“). Achtung: In manchen Textfeldern bedeutet ⌃V „Seite runter“ (Emacs-Tastenbelegung). Mit Bedienungshilfen fügt ⏎ direkt in die vorige App ein, sonst wird nur kopiert.") {
+            SettingsToggleRow(symbol: "doc.on.clipboard", title: "Verlauf aufzeichnen",
+                              subtitle: "Merkt sich Text, Links, Bilder und Dateien. Passwörter von Passwortmanagern werden ignoriert.", isOn: $on)
+            SettingsRow(symbol: "number", title: "Limit") {
+                menuPicker($limit) { ForEach([50, 100, 200, 500], id: \.self) { Text("\($0) Einträge").tag($0) } }
+            }
+            .disabled(!on)
+            SettingsToggleRow(symbol: "photo", title: "Bilder speichern", isOn: $images).disabled(!on)
+        }
+        SettingsGroup(title: "Ausgeschlossene Apps", footer: "Aus diesen Apps kopierte Inhalte werden nicht gespeichert.") {
+            ForEach(excluded, id: \.self) { id in
+                SettingsRow(symbol: "app", title: ClipboardStore.appName(id), subtitle: id) {
+                    Button("Entfernen") { excluded.removeAll { $0 == id }; ClipboardStore.excluded = excluded }
+                }
+            }
+            SettingsRow(symbol: "plus.app", title: "App hinzufügen…") { Button("Auswählen…", action: addApp) }
+        }
+        SettingsGroup {
+            SettingsRow(symbol: "trash", title: "Verlauf löschen", subtitle: "\(store.entries.count) Einträge, davon \(store.entries.filter(\.pinned).count) angepinnt") {
+                Button("Löschen…", action: clear).disabled(store.entries.isEmpty)
+            }
+        }
+        .onChange(of: on) { _ in ClipboardStore.shared.sync() }
+        .onChange(of: limit) { _ in ClipboardStore.shared.trim() }
+    }
+
+    private func addApp() {
+        let p = NSOpenPanel()
+        p.directoryURL = URL(fileURLWithPath: "/Applications")
+        p.allowedContentTypes = [.application]
+        p.allowsMultipleSelection = false
+        guard p.runModal() == .OK, let u = p.url, let id = Bundle(url: u)?.bundleIdentifier, !excluded.contains(id) else { return }
+        excluded.append(id)
+        ClipboardStore.excluded = excluded
+    }
+
+    /// Angepinnte bleiben standardmäßig erhalten; „Alles löschen“ entfernt auch sie.
+    private func clear() {
+        let a = NSAlert()
+        a.messageText = "Zwischenablage-Verlauf löschen?"
+        a.informativeText = "Angepinnte Einträge bleiben erhalten, wenn du „Ohne Angepinnte“ wählst."
+        a.addButton(withTitle: "Ohne Angepinnte").hasDestructiveAction = true
+        a.addButton(withTitle: "Alles löschen").hasDestructiveAction = true
+        a.addButton(withTitle: "Abbrechen")
+        switch a.runModal() {
+        case .alertFirstButtonReturn: ClipboardStore.shared.clear(includingPinned: false)
+        case .alertSecondButtonReturn: ClipboardStore.shared.clear(includingPinned: true)
+        default: break
+        }
+    }
+}
+
 private struct HistoryPage: View {
     @AppStorage("historyEnabled") private var history = true
     @AppStorage("historyLimit") private var historyLimit = 30
@@ -520,6 +588,7 @@ private struct HistoryPage: View {
 private struct FunPage: View {
     @AppStorage("funSoundEnabled") private var soundOn = false
     @AppStorage("funSoundPath") private var soundPath = ""
+    @AppStorage("funSoundMaxSeconds") private var maxSeconds = 10.0
     @AppStorage("funImageEnabled") private var imageOn = false
     @AppStorage("funImagePath") private var imagePath = ""
 
@@ -530,6 +599,13 @@ private struct FunPage: View {
                 Button("Wählen…") { FunEffects.pick(.audio, prefix: "sound", key: "funSoundPath") }
                 Button("Vorhören") { FunEffects.playSound() }.disabled(soundPath.isEmpty)
                 Button("Entfernen") { FunEffects.remove(prefix: "sound", key: "funSoundPath") }.disabled(soundPath.isEmpty)
+            }
+            SettingsRow(symbol: "timer", title: "Maximale Länge") {
+                HStack(spacing: 8) {
+                    Slider(value: $maxSeconds, in: 1...30, step: 1).frame(width: 140)
+                    Text("\(Int(maxSeconds)) s").font(.system(size: 12)).monospacedDigit().foregroundStyle(.secondary)
+                        .frame(width: 34, alignment: .trailing)
+                }
             }
         }
         SettingsGroup(title: "Bild", footer: "Vorsicht bei Lichtempfindlichkeit.") {

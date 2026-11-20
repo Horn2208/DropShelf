@@ -12,11 +12,11 @@ final class HotKey: ObservableObject {
     private var handler: EventHandlerRef?
     private let keys: [(id: UInt32, code: Int, pref: String)] = [
         (1, kVK_ANSI_A, "hotkeyAirDropEnabled"), (2, kVK_Space, "hotkeyShelfEnabled"), (3, kVK_ANSI_V, "hotkeyHistoryEnabled"),
-        (4, kVK_ANSI_C, "hotkeyClipboardEnabled")]
+        (4, kVK_ANSI_C, "hotkeyClipboardEnabled"), (5, kVK_ANSI_V, "hotkeyClipHistoryEnabled")]
 
     /// Gespeichertes Kürzel (`hotkeyCode<id>`/`hotkeyMods<id>`, Carbon-Modifier) oder Standard (⌃⌥ + Taste).
     static func defaultCombo(_ id: UInt32) -> (code: Int, mods: Int) {
-        ([1: kVK_ANSI_A, 2: kVK_Space, 3: kVK_ANSI_V, 4: kVK_ANSI_C][Int(id)] ?? 0, controlKey | optionKey)
+        ([1: kVK_ANSI_A, 2: kVK_Space, 3: kVK_ANSI_V, 4: kVK_ANSI_C, 5: kVK_ANSI_V][Int(id)] ?? 0, id == 5 ? controlKey : controlKey | optionKey)
     }
 
     static func combo(_ id: UInt32) -> (code: Int, mods: Int) {
@@ -62,6 +62,7 @@ final class HotKey: ObservableObject {
                     case 1: AirDropSender.shared.sendActiveShelf()
                     case 2: ShelfManager.shared.newShelf(at: NSEvent.mouseLocation)
                     case 3: HistoryPanel.toggle()
+                    case 5: ClipboardPanel.toggle()
                     default: ShelfManager.shared.newShelfFromClipboard()
                     }
                 }

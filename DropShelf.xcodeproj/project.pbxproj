@@ -10,6 +10,7 @@
 		3D9E2E697360DD20E62CA0D1 /* Glass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834B52418C08BA9A4A1C1A57 /* Glass.swift */; };
 		4103671F8B28887C8A6465AC /* History.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD6CBCB085D4DADCAA48184 /* History.swift */; };
 		43F93387EB943470CA1F6218 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE810BB12920FF0A67E1BA87 /* Assets.xcassets */; };
+		49C8CACAEE29295B2727D271 /* ClipboardHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A4C8E3428B43D466D49E24 /* ClipboardHistory.swift */; };
 		5A6B749F34F9295245C3D1E7 /* DetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F8C49819561928CB7E089AD /* DetailView.swift */; };
 		5FD93AF5845C480ED43BB09F /* DragOutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93E26FA53FBA96D20AFA0C78 /* DragOutView.swift */; };
 		693D05C81ADDC1D2AC5AD186 /* DropShelfApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C326692C1F9E863BE47A1ED0 /* DropShelfApp.swift */; };
@@ -24,6 +25,7 @@
 		CD5D85133085963F0CD39C10 /* HistoryPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D2B08962DB1244729A6DEF /* HistoryPanel.swift */; };
 		CDCABC8FC3E57BB57AD4564C /* FunEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADC0DA491D3EA1EB2ACA0B54 /* FunEffects.swift */; };
 		CF160FDE246D2C50F05D34DD /* HotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198BAAE92DAB36DD31BE5869 /* HotKey.swift */; };
+		E239701F494A52ADB002F69F /* ClipboardPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93F3D7221E37C368C241EF43 /* ClipboardPanel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,10 +39,12 @@
 		7F8C49819561928CB7E089AD /* DetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailView.swift; sourceTree = "<group>"; };
 		834B52418C08BA9A4A1C1A57 /* Glass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glass.swift; sourceTree = "<group>"; };
 		93E26FA53FBA96D20AFA0C78 /* DragOutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragOutView.swift; sourceTree = "<group>"; };
+		93F3D7221E37C368C241EF43 /* ClipboardPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPanel.swift; sourceTree = "<group>"; };
 		9931FD6B3B65DB5937EFC476 /* Actions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Actions.swift; sourceTree = "<group>"; };
 		AAD6CBCB085D4DADCAA48184 /* History.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = History.swift; sourceTree = "<group>"; };
 		ADC0DA491D3EA1EB2ACA0B54 /* FunEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FunEffects.swift; sourceTree = "<group>"; };
 		C326692C1F9E863BE47A1ED0 /* DropShelfApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropShelfApp.swift; sourceTree = "<group>"; };
+		C3A4C8E3428B43D466D49E24 /* ClipboardHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardHistory.swift; sourceTree = "<group>"; };
 		CA6CA8D7CD0F04FDBBC91BD4 /* ActionsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsPanel.swift; sourceTree = "<group>"; };
 		CE810BB12920FF0A67E1BA87 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CFBC993DF6C34EFD9F0CE718 /* ShelfView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfView.swift; sourceTree = "<group>"; };
@@ -70,6 +74,8 @@
 				9931FD6B3B65DB5937EFC476 /* Actions.swift */,
 				CA6CA8D7CD0F04FDBBC91BD4 /* ActionsPanel.swift */,
 				67ED42389CECE2EDBF165D46 /* AirDropSender.swift */,
+				C3A4C8E3428B43D466D49E24 /* ClipboardHistory.swift */,
+				93F3D7221E37C368C241EF43 /* ClipboardPanel.swift */,
 				7F8C49819561928CB7E089AD /* DetailView.swift */,
 				93E26FA53FBA96D20AFA0C78 /* DragOutView.swift */,
 				C326692C1F9E863BE47A1ED0 /* DropShelfApp.swift */,
@@ -169,6 +175,8 @@
 				ABA0F4062C6B571771EEE752 /* Actions.swift in Sources */,
 				B2B438EE35917AEA78B9BED3 /* ActionsPanel.swift in Sources */,
 				C88FF234230427DBA260D678 /* AirDropSender.swift in Sources */,
+				49C8CACAEE29295B2727D271 /* ClipboardHistory.swift in Sources */,
+				E239701F494A52ADB002F69F /* ClipboardPanel.swift in Sources */,
 				5A6B749F34F9295245C3D1E7 /* DetailView.swift in Sources */,
 				5FD93AF5845C480ED43BB09F /* DragOutView.swift in Sources */,
 				693D05C81ADDC1D2AC5AD186 /* DropShelfApp.swift in Sources */,

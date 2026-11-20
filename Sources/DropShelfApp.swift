@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ShelfRecord.selfCheck()
         ShakeDetector.selfCheck()
         BackdropPatch.selfCheck()
+        ClipboardStore.selfCheck()
         Task {  // Drop-Auflösung: Datei bleibt Datei, Text wird Cache-Datei
             let f = URL(fileURLWithPath: "/etc/hosts")
             let a = await Shelf.resolve(NSItemProvider(object: f as NSURL))
@@ -23,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         HotKey.shared.register()
         ShakeDetector.shared.sync()
+        ClipboardStore.shared.sync()
         #if DEBUG
         debugLaunchArgs()
         #endif
@@ -76,6 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ShelfManager.shared.save()
         ShelfManager.shared.purgeOrphans()
         HotKey.shared.unregister()
+        ClipboardStore.shared.flush()
     }
 }
 
@@ -98,6 +101,7 @@ struct DropShelfApp: App {
             let _ = hotkeys.revision  // Kürzel-Anzeige neu aufbauen, wenn sich ein Kürzel ändert
             hotkeyButton("Neue Ablage", 2) { ShelfManager.shared.newShelf(at: NSEvent.mouseLocation) }
             hotkeyButton("Ablage aus der Zwischenablage", 4) { ShelfManager.shared.newShelfFromClipboard() }
+            hotkeyButton("Zwischenablage-Verlauf…", 5) { ClipboardPanel.toggle() }
             if HistoryStore.enabled, !history.entries.isEmpty {
                 Section("Vorherige Ablagen") {
                     ForEach(history.entries.prefix(3)) { e in
@@ -122,7 +126,7 @@ struct DropShelfApp: App {
     /// Menüeintrag mit dem aktuell aufgenommenen Kürzel (nur zur Anzeige; ausgelöst wird es global über Carbon).
     @ViewBuilder
     private func hotkeyButton(_ title: String, _ id: UInt32, _ action: @escaping () -> Void) -> some View {
-        let on = UserDefaults.standard.object(forKey: ["hotkeyAirDropEnabled", "hotkeyShelfEnabled", "hotkeyHistoryEnabled", "hotkeyClipboardEnabled"][Int(id) - 1]) as? Bool ?? true
+        let on = UserDefaults.standard.object(forKey: ["hotkeyAirDropEnabled", "hotkeyShelfEnabled", "hotkeyHistoryEnabled", "hotkeyClipboardEnabled", "hotkeyClipHistoryEnabled"][Int(id) - 1]) as? Bool ?? true
         if on, let k = HotKey.menuShortcut(id) {
             Button(title, action: action).keyboardShortcut(k.key, modifiers: k.mods)
         } else {
