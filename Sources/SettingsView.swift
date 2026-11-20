@@ -604,7 +604,7 @@ private struct FunPage: View {
                 HStack(spacing: 8) {
                     Slider(value: $maxSeconds, in: 0.1...30, step: 0.1).frame(width: 140)
                     Text(maxSeconds.formatted(.number.precision(.fractionLength(1))) + " s").font(.system(size: 12)).monospacedDigit().foregroundStyle(.secondary)
-                        .frame(width: 34, alignment: .trailing)
+                        .frame(width: 46, alignment: .trailing)
                 }
             }
         }
