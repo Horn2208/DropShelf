@@ -3,6 +3,7 @@ import SwiftUI
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        FunEffects.registerDefaults()
         #if DEBUG
         ShelfRecord.selfCheck()
         ShakeDetector.selfCheck()

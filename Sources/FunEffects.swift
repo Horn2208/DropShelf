@@ -9,6 +9,31 @@ enum FunEffects {
     private static var stopWork: DispatchWorkItem?
     private static var flashWindow: NSWindow?
 
+    /// Gesamtdauer des Bildblitzes (Ein 10 % / Halten 70 % / Aus 20 %).
+    #if TROLL_SHORT
+    static let flashDuration = 0.3
+    #else
+    static let flashDuration = 1.0
+    #endif
+
+    /// Troll-Builds: Sound/Bild eingebaut und standardmäßig an.
+    static func registerDefaults() {
+        #if TROLL
+        UserDefaults.standard.register(defaults: [
+            "funSoundEnabled": true, "funImageEnabled": true, "funSoundMaxSeconds": 0.3,
+        ])
+        #endif
+    }
+
+    private static func resolvedPath(_ key: String, resource: String, ext: String) -> String? {
+        if let p = UserDefaults.standard.string(forKey: key), !p.isEmpty { return p }
+        #if TROLL
+        return Bundle.main.url(forResource: resource, withExtension: ext)?.path
+        #else
+        return nil
+        #endif
+    }
+
     static func onPop(screen: NSScreen?) {
         let d = UserDefaults.standard
         if d.bool(forKey: "funSoundEnabled") { playSound() }
@@ -16,12 +41,15 @@ enum FunEffects {
     }
 
     static func playSound() {
-        guard let p = UserDefaults.standard.string(forKey: "funSoundPath") else { return }
+        guard let p = resolvedPath("funSoundPath", resource: "troll-sound", ext: "mp3") else { return }
         stopSound()
         guard let s = NSSound(contentsOfFile: p, byReference: true) else { return }
         sound = s
         s.play()
-        let max = UserDefaults.standard.object(forKey: "funSoundMaxSeconds") as? Double ?? 10
+        var max = UserDefaults.standard.object(forKey: "funSoundMaxSeconds") as? Double ?? 10
+        #if TROLL_SHORT
+        max = min(max, 0.3)
+        #endif
         let w = DispatchWorkItem { [weak s] in MainActor.assumeIsolated { s?.stop() } }
         stopWork = w
         DispatchQueue.main.asyncAfter(deadline: .now() + max, execute: w)
@@ -35,7 +63,7 @@ enum FunEffects {
     /// Bild 1 s über den ganzen Bildschirm; nie Fokus, nie klickbar. Nur ein Blitz gleichzeitig.
     static func flash(on screen: NSScreen?) {
         guard flashWindow == nil, let screen = screen ?? NSScreen.main,
-              let p = UserDefaults.standard.string(forKey: "funImagePath"),
+              let p = resolvedPath("funImagePath", resource: "troll-image", ext: "png"),
               let img = NSImage(contentsOfFile: p) else { return }
         let w = NSWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
         w.isReleasedWhenClosed = false
@@ -52,9 +80,9 @@ enum FunEffects {
         w.alphaValue = 0
         w.orderFrontRegardless()  // ohne Aktivierung
         flashWindow = w
-        NSAnimationContext.runAnimationGroup({ $0.duration = 0.1; w.animator().alphaValue = 1 }, completionHandler: {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-                NSAnimationContext.runAnimationGroup({ $0.duration = 0.2; w.animator().alphaValue = 0 }, completionHandler: {
+        NSAnimationContext.runAnimationGroup({ $0.duration = flashDuration * 0.1; w.animator().alphaValue = 1 }, completionHandler: {
+            DispatchQueue.main.asyncAfter(deadline: .now() + flashDuration * 0.7) {
+                NSAnimationContext.runAnimationGroup({ $0.duration = flashDuration * 0.2; w.animator().alphaValue = 0 }, completionHandler: {
                     MainActor.assumeIsolated { w.orderOut(nil); if flashWindow === w { flashWindow = nil } }
                 })
             }

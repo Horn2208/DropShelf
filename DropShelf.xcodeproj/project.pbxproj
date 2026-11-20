@@ -7,37 +7,83 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0257DD20FFBE3C2DA0FDDB60 /* HistoryPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D2B08962DB1244729A6DEF /* HistoryPanel.swift */; };
+		029F7F2FBF4F769222BF8E0C /* ActionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA6CA8D7CD0F04FDBBC91BD4 /* ActionsPanel.swift */; };
+		057C9EC9D3D6894403C64830 /* DropShelfApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C326692C1F9E863BE47A1ED0 /* DropShelfApp.swift */; };
+		0A333A6194032DACA2A3B757 /* DragOutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93E26FA53FBA96D20AFA0C78 /* DragOutView.swift */; };
+		0A691695892576537751DDA8 /* ShelfView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFBC993DF6C34EFD9F0CE718 /* ShelfView.swift */; };
+		190B8E528EAE1AC785560850 /* DetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F8C49819561928CB7E089AD /* DetailView.swift */; };
+		1E175E558A3036368A220955 /* ShelfPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A9C0937FE4AFE7C9BFFB658 /* ShelfPanel.swift */; };
+		2448D9AF7465A48746511DAD /* Actions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9931FD6B3B65DB5937EFC476 /* Actions.swift */; };
+		261DF3105598AF60B7327DA3 /* ShelfStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F4E26B13F44FFC2D7F1CA8D /* ShelfStore.swift */; };
+		32677A7FC9A3F767497BD55F /* troll-sound.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 502E8B728721336BB4A72311 /* troll-sound.mp3 */; };
+		3A451928CEFBED8B6C1DB402 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE810BB12920FF0A67E1BA87 /* Assets.xcassets */; };
 		3D9E2E697360DD20E62CA0D1 /* Glass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834B52418C08BA9A4A1C1A57 /* Glass.swift */; };
+		3FD5502B166F9431D47EA4C6 /* AirDropSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67ED42389CECE2EDBF165D46 /* AirDropSender.swift */; };
+		402A4AD2962570004323AC2D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12124997F6C0E2E8E070E9D1 /* SettingsView.swift */; };
+		40599105353A37426DFA08BB /* ShelfView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFBC993DF6C34EFD9F0CE718 /* ShelfView.swift */; };
 		4103671F8B28887C8A6465AC /* History.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD6CBCB085D4DADCAA48184 /* History.swift */; };
 		43F93387EB943470CA1F6218 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE810BB12920FF0A67E1BA87 /* Assets.xcassets */; };
+		497FF35EC706B359B73BFAD6 /* Actions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9931FD6B3B65DB5937EFC476 /* Actions.swift */; };
 		49C8CACAEE29295B2727D271 /* ClipboardHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A4C8E3428B43D466D49E24 /* ClipboardHistory.swift */; };
+		4DAA3E51C294C8918D268933 /* DetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F8C49819561928CB7E089AD /* DetailView.swift */; };
+		4F8C57796BDD138F4836BE30 /* ClipboardHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A4C8E3428B43D466D49E24 /* ClipboardHistory.swift */; };
 		5A6B749F34F9295245C3D1E7 /* DetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F8C49819561928CB7E089AD /* DetailView.swift */; };
+		5AD4F09C3C78B0B676DE3351 /* DropShelfApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C326692C1F9E863BE47A1ED0 /* DropShelfApp.swift */; };
+		5BAA87ADF6EB568E9D0301EC /* Glass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834B52418C08BA9A4A1C1A57 /* Glass.swift */; };
+		5D6DFC1E54416F02D1990DE3 /* ShakeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AC98AF7AAA240CDA4A0CB65 /* ShakeDetector.swift */; };
+		5F136604FFA435A666708DB3 /* ShelfStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F4E26B13F44FFC2D7F1CA8D /* ShelfStore.swift */; };
 		5FD93AF5845C480ED43BB09F /* DragOutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93E26FA53FBA96D20AFA0C78 /* DragOutView.swift */; };
+		68B303D0562D541C4F1171B0 /* AirDropSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67ED42389CECE2EDBF165D46 /* AirDropSender.swift */; };
 		693D05C81ADDC1D2AC5AD186 /* DropShelfApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C326692C1F9E863BE47A1ED0 /* DropShelfApp.swift */; };
+		700AD476AD498B6FEC947F31 /* troll-sound.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 502E8B728721336BB4A72311 /* troll-sound.mp3 */; };
+		71E1D2DA4EB960E07FB4612A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE810BB12920FF0A67E1BA87 /* Assets.xcassets */; };
 		794E23277E3F242A3EEC9847 /* ShakeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AC98AF7AAA240CDA4A0CB65 /* ShakeDetector.swift */; };
 		7DC410A0CC6B97A67DB5ECC6 /* ShelfView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFBC993DF6C34EFD9F0CE718 /* ShelfView.swift */; };
+		7E936EC9F0438855C3816EF7 /* ShelfPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A9C0937FE4AFE7C9BFFB658 /* ShelfPanel.swift */; };
 		8A1FA6E994B3A67CF2171561 /* ShelfPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A9C0937FE4AFE7C9BFFB658 /* ShelfPanel.swift */; };
+		93CCE1DB05D274CDFF86F3FA /* ActionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA6CA8D7CD0F04FDBBC91BD4 /* ActionsPanel.swift */; };
+		9922EFFE46E8A1955E51996D /* troll-image.png in Resources */ = {isa = PBXBuildFile; fileRef = 19172EDFA0FA011A48716044 /* troll-image.png */; };
+		9C5E69CCB7A099B49393D45A /* HotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198BAAE92DAB36DD31BE5869 /* HotKey.swift */; };
+		A47FE028654CE4E52C914FC7 /* ClipboardHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A4C8E3428B43D466D49E24 /* ClipboardHistory.swift */; };
 		ABA0F4062C6B571771EEE752 /* Actions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9931FD6B3B65DB5937EFC476 /* Actions.swift */; };
 		B2B438EE35917AEA78B9BED3 /* ActionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA6CA8D7CD0F04FDBBC91BD4 /* ActionsPanel.swift */; };
 		B2DC12CFA83FBA83177D38EA /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12124997F6C0E2E8E070E9D1 /* SettingsView.swift */; };
 		BFEB99C9D98DA604EE9AC1FB /* ShelfStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F4E26B13F44FFC2D7F1CA8D /* ShelfStore.swift */; };
+		C18E5F895DFCC54E1454292C /* ShakeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AC98AF7AAA240CDA4A0CB65 /* ShakeDetector.swift */; };
+		C1F9DD42A59B06B9C6DF4919 /* DragOutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93E26FA53FBA96D20AFA0C78 /* DragOutView.swift */; };
 		C88FF234230427DBA260D678 /* AirDropSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67ED42389CECE2EDBF165D46 /* AirDropSender.swift */; };
 		CD5D85133085963F0CD39C10 /* HistoryPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D2B08962DB1244729A6DEF /* HistoryPanel.swift */; };
 		CDCABC8FC3E57BB57AD4564C /* FunEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADC0DA491D3EA1EB2ACA0B54 /* FunEffects.swift */; };
+		CE7325ED1FFEBA144B06FCE5 /* History.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD6CBCB085D4DADCAA48184 /* History.swift */; };
 		CF160FDE246D2C50F05D34DD /* HotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198BAAE92DAB36DD31BE5869 /* HotKey.swift */; };
+		D07EDFFFEC2D84140CFC4726 /* ClipboardPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93F3D7221E37C368C241EF43 /* ClipboardPanel.swift */; };
+		D2FE7E3DCF26D714D7939CEE /* HistoryPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D2B08962DB1244729A6DEF /* HistoryPanel.swift */; };
+		D3367113091E4CC1C3B5FEE9 /* HotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198BAAE92DAB36DD31BE5869 /* HotKey.swift */; };
+		D4EDFFE1B5216F80F7C5B93C /* ClipboardPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93F3D7221E37C368C241EF43 /* ClipboardPanel.swift */; };
+		DB99BBFD16D5E749F5225E13 /* FunEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADC0DA491D3EA1EB2ACA0B54 /* FunEffects.swift */; };
 		E239701F494A52ADB002F69F /* ClipboardPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93F3D7221E37C368C241EF43 /* ClipboardPanel.swift */; };
+		E4C418E345D23ADF0B5274B9 /* FunEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADC0DA491D3EA1EB2ACA0B54 /* FunEffects.swift */; };
+		E9AAEC4129459541C33B1C69 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12124997F6C0E2E8E070E9D1 /* SettingsView.swift */; };
+		EBD1C2A886BE747768B99689 /* Glass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834B52418C08BA9A4A1C1A57 /* Glass.swift */; };
+		F1CA986402F095620E30DA36 /* History.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD6CBCB085D4DADCAA48184 /* History.swift */; };
+		F98BC7BEE7C8C6BBD20EEDEB /* troll-image.png in Resources */ = {isa = PBXBuildFile; fileRef = 19172EDFA0FA011A48716044 /* troll-image.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		12124997F6C0E2E8E070E9D1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		19172EDFA0FA011A48716044 /* troll-image.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "troll-image.png"; sourceTree = "<group>"; };
 		198BAAE92DAB36DD31BE5869 /* HotKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKey.swift; sourceTree = "<group>"; };
 		2A9C0937FE4AFE7C9BFFB658 /* ShelfPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfPanel.swift; sourceTree = "<group>"; };
 		2AC98AF7AAA240CDA4A0CB65 /* ShakeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShakeDetector.swift; sourceTree = "<group>"; };
 		36C6D9A8793F1AFBA0FBC117 /* DropShelf.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DropShelf.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		502E8B728721336BB4A72311 /* troll-sound.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "troll-sound.mp3"; sourceTree = "<group>"; };
+		65878C2174DA86AB2BDAEA3B /* DropShelf Troll.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "DropShelf Troll.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		67ED42389CECE2EDBF165D46 /* AirDropSender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirDropSender.swift; sourceTree = "<group>"; };
 		6F4E26B13F44FFC2D7F1CA8D /* ShelfStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfStore.swift; sourceTree = "<group>"; };
 		7F8C49819561928CB7E089AD /* DetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailView.swift; sourceTree = "<group>"; };
 		834B52418C08BA9A4A1C1A57 /* Glass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glass.swift; sourceTree = "<group>"; };
+		8B80F59F3E4F6FB1A69CAFD7 /* DropShelf Troll kurz.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "DropShelf Troll kurz.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		93E26FA53FBA96D20AFA0C78 /* DragOutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragOutView.swift; sourceTree = "<group>"; };
 		93F3D7221E37C368C241EF43 /* ClipboardPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPanel.swift; sourceTree = "<group>"; };
 		9931FD6B3B65DB5937EFC476 /* Actions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Actions.swift; sourceTree = "<group>"; };
@@ -60,9 +106,20 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		23EDC92CD8FE71EC32083D03 /* Troll */ = {
+			isa = PBXGroup;
+			children = (
+				19172EDFA0FA011A48716044 /* troll-image.png */,
+				502E8B728721336BB4A72311 /* troll-sound.mp3 */,
+			);
+			path = Troll;
+			sourceTree = "<group>";
+		};
 		2DEE7B30CA71C4831092DDEE /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				8B80F59F3E4F6FB1A69CAFD7 /* DropShelf Troll kurz.app */,
+				65878C2174DA86AB2BDAEA3B /* DropShelf Troll.app */,
 				36C6D9A8793F1AFBA0FBC117 /* DropShelf.app */,
 			);
 			name = Products;
@@ -98,6 +155,7 @@
 			children = (
 				18F1C0D2EBB2436504CB08A1 /* Resources */,
 				EBE9F70094D07B3FEFD0231F /* Sources */,
+				23EDC92CD8FE71EC32083D03 /* Troll */,
 				2DEE7B30CA71C4831092DDEE /* Products */,
 			);
 			sourceTree = "<group>";
@@ -123,6 +181,42 @@
 			productReference = 36C6D9A8793F1AFBA0FBC117 /* DropShelf.app */;
 			productType = "com.apple.product-type.application";
 		};
+		7BEAE9A7593075F75C90D5C3 /* DropShelf Troll kurz */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BF3BC15F4F6A28C153414120 /* Build configuration list for PBXNativeTarget "DropShelf Troll kurz" */;
+			buildPhases = (
+				7BF5CD260CD2ABD4B6B03424 /* Sources */,
+				230C15A4A99BB44BCFA28F79 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "DropShelf Troll kurz";
+			packageProductDependencies = (
+			);
+			productName = "DropShelf Troll kurz";
+			productReference = 8B80F59F3E4F6FB1A69CAFD7 /* DropShelf Troll kurz.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A9EA82C0B93F1F9CDF97304F /* DropShelf Troll */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2DC146FC52FA5B1BA5FDED09 /* Build configuration list for PBXNativeTarget "DropShelf Troll" */;
+			buildPhases = (
+				D9A838970E45CA2CA53EB96A /* Sources */,
+				876B219874EBFB9C916F6C01 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "DropShelf Troll";
+			packageProductDependencies = (
+			);
+			productName = "DropShelf Troll";
+			productReference = 65878C2174DA86AB2BDAEA3B /* DropShelf Troll.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -133,6 +227,12 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					04785A3A08B44208E27C23C8 = {
+						ProvisioningStyle = Manual;
+					};
+					7BEAE9A7593075F75C90D5C3 = {
+						ProvisioningStyle = Manual;
+					};
+					A9EA82C0B93F1F9CDF97304F = {
 						ProvisioningStyle = Manual;
 					};
 				};
@@ -152,6 +252,8 @@
 			projectRoot = "";
 			targets = (
 				04785A3A08B44208E27C23C8 /* DropShelf */,
+				A9EA82C0B93F1F9CDF97304F /* DropShelf Troll */,
+				7BEAE9A7593075F75C90D5C3 /* DropShelf Troll kurz */,
 			);
 		};
 /* End PBXProject section */
@@ -162,6 +264,26 @@
 			buildActionMask = 2147483647;
 			files = (
 				43F93387EB943470CA1F6218 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		230C15A4A99BB44BCFA28F79 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				71E1D2DA4EB960E07FB4612A /* Assets.xcassets in Resources */,
+				9922EFFE46E8A1955E51996D /* troll-image.png in Resources */,
+				32677A7FC9A3F767497BD55F /* troll-sound.mp3 in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		876B219874EBFB9C916F6C01 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3A451928CEFBED8B6C1DB402 /* Assets.xcassets in Resources */,
+				F98BC7BEE7C8C6BBD20EEDEB /* troll-image.png in Resources */,
+				700AD476AD498B6FEC947F31 /* troll-sound.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -193,9 +315,81 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7BF5CD260CD2ABD4B6B03424 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2448D9AF7465A48746511DAD /* Actions.swift in Sources */,
+				029F7F2FBF4F769222BF8E0C /* ActionsPanel.swift in Sources */,
+				68B303D0562D541C4F1171B0 /* AirDropSender.swift in Sources */,
+				4F8C57796BDD138F4836BE30 /* ClipboardHistory.swift in Sources */,
+				D4EDFFE1B5216F80F7C5B93C /* ClipboardPanel.swift in Sources */,
+				4DAA3E51C294C8918D268933 /* DetailView.swift in Sources */,
+				0A333A6194032DACA2A3B757 /* DragOutView.swift in Sources */,
+				5AD4F09C3C78B0B676DE3351 /* DropShelfApp.swift in Sources */,
+				DB99BBFD16D5E749F5225E13 /* FunEffects.swift in Sources */,
+				5BAA87ADF6EB568E9D0301EC /* Glass.swift in Sources */,
+				F1CA986402F095620E30DA36 /* History.swift in Sources */,
+				D2FE7E3DCF26D714D7939CEE /* HistoryPanel.swift in Sources */,
+				D3367113091E4CC1C3B5FEE9 /* HotKey.swift in Sources */,
+				E9AAEC4129459541C33B1C69 /* SettingsView.swift in Sources */,
+				C18E5F895DFCC54E1454292C /* ShakeDetector.swift in Sources */,
+				1E175E558A3036368A220955 /* ShelfPanel.swift in Sources */,
+				5F136604FFA435A666708DB3 /* ShelfStore.swift in Sources */,
+				40599105353A37426DFA08BB /* ShelfView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D9A838970E45CA2CA53EB96A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				497FF35EC706B359B73BFAD6 /* Actions.swift in Sources */,
+				93CCE1DB05D274CDFF86F3FA /* ActionsPanel.swift in Sources */,
+				3FD5502B166F9431D47EA4C6 /* AirDropSender.swift in Sources */,
+				A47FE028654CE4E52C914FC7 /* ClipboardHistory.swift in Sources */,
+				D07EDFFFEC2D84140CFC4726 /* ClipboardPanel.swift in Sources */,
+				190B8E528EAE1AC785560850 /* DetailView.swift in Sources */,
+				C1F9DD42A59B06B9C6DF4919 /* DragOutView.swift in Sources */,
+				057C9EC9D3D6894403C64830 /* DropShelfApp.swift in Sources */,
+				E4C418E345D23ADF0B5274B9 /* FunEffects.swift in Sources */,
+				EBD1C2A886BE747768B99689 /* Glass.swift in Sources */,
+				CE7325ED1FFEBA144B06FCE5 /* History.swift in Sources */,
+				0257DD20FFBE3C2DA0FDDB60 /* HistoryPanel.swift in Sources */,
+				9C5E69CCB7A099B49393D45A /* HotKey.swift in Sources */,
+				402A4AD2962570004323AC2D /* SettingsView.swift in Sources */,
+				5D6DFC1E54416F02D1990DE3 /* ShakeDetector.swift in Sources */,
+				7E936EC9F0438855C3816EF7 /* ShelfPanel.swift in Sources */,
+				261DF3105598AF60B7327DA3 /* ShelfStore.swift in Sources */,
+				0A691695892576537751DDA8 /* ShelfView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		007A271A82D159084C71A171 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = DropShelf.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.horn2208.DropShelf.troll;
+				PRODUCT_NAME = DropShelf;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) TROLL";
+			};
+			name = Release;
+		};
 		5E3FB7782EABB55311256B47 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -213,6 +407,28 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.horn2208.DropShelf;
 				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		6BD5C7BA346DCA34DE80C725 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = DropShelf.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.horn2208.DropShelf.troll;
+				PRODUCT_NAME = DropShelf;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) TROLL";
 			};
 			name = Debug;
 		};
@@ -335,6 +551,28 @@
 			};
 			name = Release;
 		};
+		BFBBCF45DF41A023C52BDE03 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = DropShelf.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.horn2208.DropShelf.trollkurz;
+				PRODUCT_NAME = DropShelf;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) TROLL TROLL_SHORT";
+			};
+			name = Debug;
+		};
 		F31DC3B3CDA1C4BB89B3D532 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -355,9 +593,49 @@
 			};
 			name = Release;
 		};
+		F5AEF7B6A74AE3D3672A3636 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = DropShelf.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.horn2208.DropShelf.trollkurz;
+				PRODUCT_NAME = DropShelf;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) TROLL TROLL_SHORT";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		2DC146FC52FA5B1BA5FDED09 /* Build configuration list for PBXNativeTarget "DropShelf Troll" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6BD5C7BA346DCA34DE80C725 /* Debug */,
+				007A271A82D159084C71A171 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BF3BC15F4F6A28C153414120 /* Build configuration list for PBXNativeTarget "DropShelf Troll kurz" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BFBBCF45DF41A023C52BDE03 /* Debug */,
+				F5AEF7B6A74AE3D3672A3636 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		D44F0877F815917E66AFCA5A /* Build configuration list for PBXProject "DropShelf" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
