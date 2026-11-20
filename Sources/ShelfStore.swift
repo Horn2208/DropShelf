@@ -32,6 +32,9 @@ final class Shelf: ObservableObject, Identifiable {
     @Published var appeared = false  // Pop-Animation beim Öffnen
     @Published var closing = false
     @Published private(set) var hovering = false  // Maus über Ablage oder Aktionsleiste
+    @Published private(set) var dropping = false  // ein Drag schwebt über Ablage/Aktionsleiste (gilt bis `hovering` endet)
+    /// Aktionsleiste sichtbar: beim Hovern mit Inhalt oder während ein Drag drüberschwebt (dann auch bei leerer Ablage).
+    var showsActions: Bool { hovering && (!items.isEmpty || dropping) }
     private var hoverSources = Set<String>()
     private var hoverTask: Task<Void, Never>?
     var onChange: (() -> Void)?
@@ -61,12 +64,17 @@ final class Shelf: ObservableObject, Identifiable {
     /// Hover von mehreren Fenstern (Ablage + Aktionsleiste); Ausblenden leicht verzögert gegen Flackern.
     func setHover(_ key: String, _ on: Bool) {
         hoverTask?.cancel()
-        if on { hoverSources.insert(key); hovering = true; return }
+        if on {
+            hoverSources.insert(key)
+            if !hovering { hovering = true }
+            if key.hasPrefix("drop") && !dropping { dropping = true }  // "drop", "dropbtn", "droprow"
+            return
+        }
         hoverSources.remove(key)
         guard hoverSources.isEmpty else { return }
         hoverTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 250_000_000)
-            if !Task.isCancelled && self.hoverSources.isEmpty { self.hovering = false }
+            if !Task.isCancelled && self.hoverSources.isEmpty { self.hovering = false; self.dropping = false }
         }
     }
 

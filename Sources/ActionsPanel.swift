@@ -24,8 +24,10 @@ final class ActionsPanel: NSPanel {
         host.frame = NSRect(origin: .zero, size: Self.size)
         contentView = host
         // Unsichtbar = Klicks gehen durch.
-        sub = shelf.$hovering.combineLatest(shelf.$items).sink { [weak self] hover, items in
-            self?.ignoresMouseEvents = !(hover && !items.isEmpty)
+        // Erst im nächsten Durchlauf lesen: `@Published` meldet vor dem Setzen.
+        sub = shelf.$hovering.combineLatest(shelf.$items, shelf.$dropping).sink { [weak self, weak shelf] _, _, _ in
+            DispatchQueue.main.async { if let shelf { self?.ignoresMouseEvents = !shelf.showsActions } }
+            GlassKit.retintSoon(self?.contentView)  // neue Glas-Knöpfe: gleich klar wie die Ablage
         }
     }
 }
@@ -36,7 +38,8 @@ private struct ActionsView: View {
     let anchor: () -> NSView?
     @Namespace private var ns
     @State private var target: ShelfAction?  // Knopf, über dem gerade eine Datei schwebt
-    private var visible: Bool { shelf.hovering && !shelf.items.isEmpty }
+    @State private var rowTargeted = false  // Drag über der Leiste (zwischen den Knöpfen): Leiste bleibt offen
+    private var visible: Bool { shelf.showsActions }
     private var shown: [ShelfAction] { Array(prefs.enabled.prefix(ActionPrefs.maxActive)) }
 
     var body: some View {
@@ -46,18 +49,22 @@ private struct ActionsView: View {
                 // Ab macOS 26 fließen die Glas-Knöpfe beim Erscheinen ineinander (Morph über glassEffectID).
                 if visible || !GlassKit.liquid {
                     ForEach(Array(shown.enumerated()), id: \.element) { i, a in
-                        let ok = a.canPerform(urls)
+                        // Beim Drag zählt, was gezogen wird (Dienst wird beim Ablegen geprüft), nicht der Ablage-Inhalt.
+                        let ok = shelf.dropping && a.acceptsDrop || a.canPerform(urls)
                         button(a, ok: ok).opacity(GlassKit.liquid ? (ok ? 1 : 0.35) : (visible ? (ok ? 1 : 0.35) : 0))
                             .scaleEffect(GlassKit.liquid ? 1 : Motion.scale(0.5, on: visible))
                             .animation(Motion.pop.map { $0.delay(Double(i) * 0.03) }, value: visible)
                     }
                 }
             }
-            .animation(Motion.bouncy, value: visible)
+            .animation(visible ? Motion.pop : Motion.close, value: visible)  // ausblenden schneller als einblenden
             .animation(Motion.smooth, value: shown)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
         .onHover { shelf.setHover("actions", $0) }
+        .onDrop(of: [.fileURL, .image, .plainText, .url], isTargeted: $rowTargeted) { _ in false }
+        .onChange(of: rowTargeted) { shelf.setHover("droprow", $0) }
     }
 
     @ViewBuilder private func button(_ a: ShelfAction, ok: Bool) -> some View {

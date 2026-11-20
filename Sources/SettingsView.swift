@@ -180,7 +180,7 @@ private struct SettingsRow<Control: View>: View {
     var body: some View {
         HStack(spacing: 10) {
             if let symbol {
-                Image(systemName: symbol).font(.system(size: 14)).foregroundStyle(.secondary).frame(width: 22)
+                Image.symbol(symbol).font(.system(size: 14)).foregroundStyle(.secondary).frame(width: 22)
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text(title).font(.system(size: 13))
@@ -252,7 +252,7 @@ private struct ActivationPage: View {
             SettingsDivider()
             shortcut("Ablage aus Zwischenablage", "doc.on.clipboard", 4, $clipOn)
             SettingsDivider()
-            shortcut("Aktive Ablage per AirDrop", "dot.radiowaves.up.forward", 1, $airOn)
+            shortcut("Aktive Ablage per AirDrop", "airdrop", 1, $airOn)
             SettingsDivider()
             shortcut("Verlauf öffnen", "clock.arrow.circlepath", 3, $histOn)
         }
@@ -288,7 +288,7 @@ private struct InteractionsPage: View {
             SettingsToggleRow(symbol: "xmark.rectangle", title: "Ablage schließen, wenn sie leer ist",
                         subtitle: "Nach dem Herausziehen der letzten Datei schließt sich das Fenster.", isOn: $autoClose)
             SettingsDivider()
-            SettingsToggleRow(symbol: "dot.radiowaves.up.forward", title: "Nach AirDrop fragen",
+            SettingsToggleRow(symbol: "airdrop", title: "Nach AirDrop fragen",
                         subtitle: "Ob die Ablage nach dem Senden geleert werden soll.", isOn: $askClear)
             SettingsDivider()
             SettingsRow(symbol: "square.grid.2x2", title: "Standard-Ansicht") {
@@ -426,7 +426,7 @@ private struct ActionsPage: View {
                 ForEach(prefs.ordered) { a in
                     let on = prefs.enabled.contains(a)
                     Toggle(isOn: Binding(get: { on }, set: { set(a, $0) })) {
-                        Label(a.title, systemImage: a.symbol)
+                        Label { Text(a.title) } icon: { Image.symbol(a.symbol) }
                     }
                     .toggleStyle(.switch)
                     .disabled(!on && full)

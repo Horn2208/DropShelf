@@ -7,7 +7,7 @@ enum ShelfAction: String, CaseIterable, Identifiable {
 
     var symbol: String {
         switch self {
-        case .airdrop: "dot.radiowaves.up.forward"
+        case .airdrop: "airdrop"  // privates Systemsymbol, siehe `Image.symbol`
         case .message: "message"
         case .mail: "envelope"
         case .share: "square.and.arrow.up"

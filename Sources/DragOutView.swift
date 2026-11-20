@@ -65,7 +65,9 @@ final class DragOutView: NSView, NSDraggingSource {
         let m = NSMenu()
         if onRestore != nil { m.addItem(withTitle: "Wiederherstellen", action: #selector(restore), keyEquivalent: "").target = self }
         if onAirDrop != nil {
-            m.addItem(withTitle: "Per AirDrop senden", action: #selector(airDrop), keyEquivalent: "").target = self
+            let i = m.addItem(withTitle: "Per AirDrop senden", action: #selector(airDrop), keyEquivalent: "")
+            i.target = self
+            i.image = NSImage.privateSymbol("airdrop")
         }
         m.addItem(withTitle: "Im Finder zeigen", action: #selector(reveal), keyEquivalent: "").target = self
         m.addItem(withTitle: removeTitle, action: #selector(remove), keyEquivalent: "").target = self
