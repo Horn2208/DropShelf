@@ -6,6 +6,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
         ShelfRecord.selfCheck()
         ShakeDetector.selfCheck()
+        Task {  // Drop-Auflösung: Datei bleibt Datei, Text wird Cache-Datei
+            let f = URL(fileURLWithPath: "/etc/hosts")
+            let a = await Shelf.resolve(NSItemProvider(object: f as NSURL))
+            let b = await Shelf.resolve(NSItemProvider(object: "hallo" as NSString))
+            assert(a?.path == f.path, "resolve file")
+            assert(b.map(Shelf.isCacheFile) == true && (try? String(contentsOf: b!)) == "hallo", "resolve text")
+            b.map { try? FileManager.default.removeItem(at: $0) }
+            NSLog("DROP-SELFCHECK ok %@ %@", a?.path ?? "nil", b?.lastPathComponent ?? "nil")
+        }
         #endif
         ShelfManager.shared.restore()
         if ShelfManager.shared.isEmpty && UserDefaults.standard.object(forKey: "openShelfOnLaunch") as? Bool ?? true {

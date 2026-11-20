@@ -59,6 +59,7 @@ struct ShelfView: View {
         .animation(Motion.snappy, value: targeted)
         .onHover { shelf.setHover("main", $0) }
         .onDrop(of: [.fileURL, .image, .plainText, .url], isTargeted: $targeted) { shelf.drop($0) }
+        .onChange(of: targeted) { shelf.setHover("drop", $0) }  // Aktionsleiste erscheint beim Drüberziehen
     }
 
     private var topBar: some View {
@@ -106,7 +107,7 @@ struct ShelfView: View {
         .animation(Motion.pop, value: shelf.items.count)
         .frame(width: 120, height: 116)
         .overlay {
-            DragOut(urls: { shelf.items.map(\.url) }, onClick: { shelf.expanded = true }, onMoved: { shelf.remove($0) })
+            DragOut(urls: { shelf.items.map(\.url) }, onClick: { shelf.expanded = true }, onDragging: { shelf.setHover("dragout", $0) }, onMoved: { shelf.remove($0) })
         }
     }
 

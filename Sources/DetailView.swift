@@ -137,7 +137,8 @@ private struct DetailCell: View {
         .task(id: item.url) { meta = FileInfo.subtitle(item.url) }
         .overlay {
             DragOut(urls: { [item.url] }, onRemove: { shelf.remove([item.url]) },
-                    onAirDrop: { AirDropSender.shared.send(shelf: shelf, urls: [item.url]) }, onMoved: { shelf.remove($0) })
+                    onAirDrop: { AirDropSender.shared.send(shelf: shelf, urls: [item.url]) },
+                    onDragging: { shelf.setHover("dragout", $0) }, onMoved: { shelf.remove($0) })
         }
     }
 

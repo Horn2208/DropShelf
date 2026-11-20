@@ -136,40 +136,43 @@ final class Shelf: ObservableObject, Identifiable {
 
     func drop(_ providers: [NSItemProvider]) -> Bool {
         for p in providers {
-            if p.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
-                _ = p.loadObject(ofClass: URL.self) { url, _ in
-                    guard let url else { return }
-                    Task { @MainActor in self.add(url) }
-                }
-            } else if p.canLoadObject(ofClass: NSImage.self) {
-                _ = p.loadObject(ofClass: NSImage.self) { obj, _ in
-                    guard let tiff = (obj as? NSImage)?.tiffRepresentation,
-                          let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]),
-                          let url = Self.cacheFile("Bild", "png", png) else { return }
-                    Task { @MainActor in self.add(url) }
-                }
-            } else if p.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
-                _ = p.loadObject(ofClass: URL.self) { url, _ in
-                    guard let url else { return }
-                    let target: URL?
-                    if url.isFileURL {
-                        target = url
-                    } else {
-                        let plist = try? PropertyListSerialization.data(
-                            fromPropertyList: ["URL": url.absoluteString], format: .xml, options: 0)
-                        target = plist.flatMap { Self.cacheFile(url.host ?? "Link", "webloc", $0) }
-                    }
-                    guard let target else { return }
-                    Task { @MainActor in self.add(target) }
-                }
-            } else if p.canLoadObject(ofClass: String.self) {
-                _ = p.loadObject(ofClass: String.self) { text, _ in
-                    guard let text, let url = Self.cacheFile("Text", "txt", Data(text.utf8)) else { return }
-                    Task { @MainActor in self.add(url) }
-                }
+            Self.resolve(p) { url in
+                guard let url else { return }
+                Task { @MainActor in self.add(url) }
             }
         }
         return !providers.isEmpty
+    }
+
+    /// Dateien direkt, sonst Bild/Link/Text als Cache-Datei; `done` kommt genau einmal (nil = nichts lesbar).
+    nonisolated static func resolve(_ p: NSItemProvider, _ done: @escaping @Sendable (URL?) -> Void) {
+        if p.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+            _ = p.loadObject(ofClass: URL.self) { url, _ in done(url) }
+        } else if p.canLoadObject(ofClass: NSImage.self) {
+            _ = p.loadObject(ofClass: NSImage.self) { obj, _ in
+                guard let tiff = (obj as? NSImage)?.tiffRepresentation,
+                      let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) else { return done(nil) }
+                done(Self.cacheFile("Bild", "png", png))
+            }
+        } else if p.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
+            _ = p.loadObject(ofClass: URL.self) { url, _ in
+                guard let url else { return done(nil) }
+                if url.isFileURL { return done(url) }
+                let plist = try? PropertyListSerialization.data(
+                    fromPropertyList: ["URL": url.absoluteString], format: .xml, options: 0)
+                done(plist.flatMap { Self.cacheFile(url.host ?? "Link", "webloc", $0) })
+            }
+        } else if p.canLoadObject(ofClass: String.self) {
+            _ = p.loadObject(ofClass: String.self) { text, _ in
+                done(text.flatMap { Self.cacheFile("Text", "txt", Data($0.utf8)) })
+            }
+        } else {
+            done(nil)
+        }
+    }
+
+    @MainActor static func resolve(_ p: NSItemProvider) async -> URL? {
+        await withCheckedContinuation { c in resolve(p) { c.resume(returning: $0) } }
     }
 
     nonisolated static func cacheFile(_ base: String, _ ext: String, _ data: Data) -> URL? {

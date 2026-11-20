@@ -8,12 +8,13 @@ struct DragOut: NSViewRepresentable {
     var onRemove: (() -> Void)?
     var onAirDrop: (() -> Void)?
     var onRestore: (() -> Void)?
+    var onDragging: ((Bool) -> Void)?
     var removeTitle = "Entfernen"
     let onMoved: ([URL]) -> Void
 
     func makeNSView(context: Context) -> DragOutView { DragOutView() }
     func updateNSView(_ v: DragOutView, context: Context) {
-        v.urls = urls; v.onClick = onClick; v.onRemove = onRemove; v.onAirDrop = onAirDrop; v.onRestore = onRestore; v.removeTitle = removeTitle; v.onMoved = onMoved
+        v.urls = urls; v.onClick = onClick; v.onRemove = onRemove; v.onAirDrop = onAirDrop; v.onRestore = onRestore; v.onDragging = onDragging; v.removeTitle = removeTitle; v.onMoved = onMoved
     }
 }
 
@@ -23,6 +24,7 @@ final class DragOutView: NSView, NSDraggingSource {
     var onRemove: (() -> Void)?
     var onAirDrop: (() -> Void)?
     var onRestore: (() -> Void)?
+    var onDragging: ((Bool) -> Void)?
     var removeTitle = "Entfernen"
     var onMoved: ([URL]) -> Void = { _ in }
     private var downPoint: NSPoint?
@@ -54,6 +56,7 @@ final class DragOutView: NSView, NSDraggingSource {
             item.setDraggingFrame(NSRect(x: p.x - 32 + o, y: p.y - 32 - o, width: 64, height: 64), contents: icon)
             return item
         }
+        onDragging?(true)
         beginDraggingSession(with: items, event: event, source: self)
     }
 
@@ -75,14 +78,19 @@ final class DragOutView: NSView, NSDraggingSource {
     @objc private func remove() { onRemove?() }
 
     func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
-        context == .outsideApplication ? [.copy, .move, .generic] : []
+        // Innerhalb der App nur Kopieren: Aktionsknöpfe (Senden) und andere Ablagen.
+        context == .outsideApplication ? [.copy, .move, .generic] : [.copy]
     }
 
     func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
         accessed.forEach { $0.stopAccessingSecurityScopedResource() }
         accessed = []
-        // Mit Wahltaste bleiben die Einträge in der Ablage.
-        if operation != [] && !keepCopy { onMoved(dragURLs) }
+        onDragging?(false)
+        // Mit Wahltaste oder beim Ablegen auf eigene Fenster (Aktionsknöpfe, Ablagen) bleiben die Einträge in der Ablage.
+        let own = MainActor.assumeIsolated {
+            NSApp.windows.contains { ($0 is ActionsPanel || $0 is ShelfPanel) && $0.isVisible && $0.frame.contains(screenPoint) }
+        }
+        if operation != [] && !keepCopy && !own { onMoved(dragURLs) }
         dragURLs = []
     }
 }

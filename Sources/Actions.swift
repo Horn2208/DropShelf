@@ -52,10 +52,29 @@ enum ShelfAction: String, CaseIterable, Identifiable {
         return NSSharingService(named: name)?.canPerform(withItems: urls) ?? false
     }
 
-    @MainActor func run(shelf: Shelf, anchor: NSView?) {
-        let urls = shelf.items.map(\.url)
+    /// Per Drag auf den Knopf: nur Senden/Teilen (AirDrop, Nachrichten, Mail, Teilen); genau die abgelegten Dateien.
+    var acceptsDrop: Bool { self == .airdrop || self == .message || self == .mail || self == .share }
+
+    @MainActor func drop(_ providers: [NSItemProvider], shelf: Shelf, anchor: NSView?) -> Bool {
+        guard acceptsDrop, !providers.isEmpty else { return false }
+        Task { @MainActor in
+            var urls: [URL] = []
+            for p in providers { if let u = await Shelf.resolve(p) { urls.append(u) } }
+            guard canPerform(urls) else { return NSSound.beep() }
+            run(shelf: shelf, anchor: anchor, urls: urls)
+        }
+        return true
+    }
+
+    /// `dropped`: nur diese Dateien statt der ganzen Ablage.
+    @MainActor func run(shelf: Shelf, anchor: NSView?, urls dropped: [URL]? = nil) {
+        let all = shelf.items.map(\.url)
+        let urls = dropped ?? all
         switch self {
-        case .airdrop: AirDropSender.shared.send(shelf: shelf, urls: urls)
+        case .airdrop:
+            // „Ablage leeren?“ nur, wenn wirklich die ganze Ablage gesendet wird.
+            let whole = Set(urls.map(Shelf.canonical)) == Set(all.map(Shelf.canonical))
+            AirDropSender.shared.send(shelf: whole ? shelf : nil, urls: urls)
         case .message, .mail:
             NSApp.activate(ignoringOtherApps: true)  // nonactivating Panel: Teilen-Dialog braucht aktive App
             serviceName.flatMap { NSSharingService(named: $0) }?.perform(withItems: urls)

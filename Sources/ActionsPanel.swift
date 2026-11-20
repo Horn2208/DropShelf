@@ -35,6 +35,7 @@ private struct ActionsView: View {
     @ObservedObject private var prefs = ActionPrefs.shared
     let anchor: () -> NSView?
     @Namespace private var ns
+    @State private var target: ShelfAction?  // Knopf, über dem gerade eine Datei schwebt
     private var visible: Bool { shelf.hovering && !shelf.items.isEmpty }
     private var shown: [ShelfAction] { Array(prefs.enabled.prefix(ActionPrefs.maxActive)) }
 
@@ -60,7 +61,34 @@ private struct ActionsView: View {
     }
 
     @ViewBuilder private func button(_ a: ShelfAction, ok: Bool) -> some View {
+        let on = target == a
         let b = GlassCircleButton(symbol: a.symbol, size: 34, help: a.help) { a.run(shelf: shelf, anchor: anchor()) }.disabled(!ok)
+            .overlay(Circle().strokeBorder(Color.accentColor, lineWidth: 2.5).opacity(on ? 1 : 0).allowsHitTesting(false))
+            .scaleEffect(on && Motion.enabled ? 1.15 : 1)
+            .animation(Motion.snappy, value: on)
+            .onDrop(of: [.fileURL, .image, .plainText, .url], delegate: ButtonDrop(
+                ok: ok && a.acceptsDrop, shelf: shelf,
+                enter: { target = a; shelf.setHover("dropbtn", true) },
+                exit: { if target == a { target = nil }; shelf.setHover("dropbtn", false) },
+                perform: { a.drop($0, shelf: shelf, anchor: anchor()) }))
         if #available(macOS 26, *) { b.glassEffectID(a.rawValue, in: ns) } else { b }
+    }
+}
+
+/// Drop auf einen Aktionsknopf: Kopieren-Cursor nur, wenn der Dienst verfügbar ist; sonst abgelehnt.
+private struct ButtonDrop: DropDelegate {
+    let ok: Bool
+    let shelf: Shelf
+    let enter: () -> Void
+    let exit: () -> Void
+    let perform: ([NSItemProvider]) -> Bool
+
+    func validateDrop(info: DropInfo) -> Bool { ok }
+    func dropEntered(info: DropInfo) { if ok { enter() } }
+    func dropExited(info: DropInfo) { exit() }
+    func dropUpdated(info: DropInfo) -> DropProposal? { DropProposal(operation: ok ? .copy : .forbidden) }
+    func performDrop(info: DropInfo) -> Bool {
+        exit()
+        return perform(info.itemProviders(for: [.fileURL, .image, .plainText, .url]))
     }
 }
