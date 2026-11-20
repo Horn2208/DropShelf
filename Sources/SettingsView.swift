@@ -602,8 +602,8 @@ private struct FunPage: View {
             }
             SettingsRow(symbol: "timer", title: "Maximale Länge") {
                 HStack(spacing: 8) {
-                    Slider(value: $maxSeconds, in: 1...30, step: 1).frame(width: 140)
-                    Text("\(Int(maxSeconds)) s").font(.system(size: 12)).monospacedDigit().foregroundStyle(.secondary)
+                    Slider(value: $maxSeconds, in: 0.1...30, step: 0.1).frame(width: 140)
+                    Text(maxSeconds.formatted(.number.precision(.fractionLength(1))) + " s").font(.system(size: 12)).monospacedDigit().foregroundStyle(.secondary)
                         .frame(width: 34, alignment: .trailing)
                 }
             }
