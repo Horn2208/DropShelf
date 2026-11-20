@@ -58,21 +58,27 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
         actions.anchorWindow = self
         clampToScreen()
         actions.setFrame(actionsFrame(for: frame), display: false)
-        actions.orderFront(nil)
+        addChildWindow(actions, ordered: .above)  // Kindfenster: bewegt sich beim Ziehen ohne Nachlauf mit
         DispatchQueue.main.async { self.invalidateShadow() }
 
         expandSub = shelf.$expanded.dropFirst().sink { [weak self] open in
             guard let self else { return }
             let size = open ? Self.detailSize : CGSize(width: Self.width, height: Self.collapsedHeight)
-            let c = CGPoint(x: self.frame.midX, y: self.frame.midY)  // Mittelpunkt bleibt, wächst in alle Richtungen
-            let f = self.clamped(NSRect(x: c.x - size.width / 2, y: c.y - size.height / 2, width: size.width, height: size.height))
+            // Oberkante und waagrechte Mitte bleiben: wächst nur nach unten und gleichmäßig zu beiden Seiten.
+            let old = self.frame
+            let f = self.clamped(NSRect(x: old.midX - size.width / 2, y: old.maxY - size.height, width: size.width, height: size.height))
             if Motion.enabled {
-                NSAnimationContext.runAnimationGroup { c in
-                    c.duration = 0.22  // Dropover: ≈0,2 s, Mitte bleibt
+                // Während der Animation lösen, sonst verschiebt AppKit das Kindfenster zusätzlich zur eigenen Animation.
+                self.removeChildWindow(self.actions)
+                NSAnimationContext.runAnimationGroup({ c in
+                    c.duration = 0.22  // Dropover: ≈0,2 s
                     c.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 0.9, 0.3, 1)
                     self.animator().setFrame(f, display: true)
                     self.actions.animator().setFrame(self.actionsFrame(for: f), display: true)
-                }
+                }, completionHandler: { MainActor.assumeIsolated {
+                    self.actions.setFrame(self.actionsFrame(for: self.frame), display: true)
+                    if self.isVisible { self.addChildWindow(self.actions, ordered: .above) }
+                } })
             } else {
                 self.setFrame(f, display: true)
                 self.actions.setFrame(self.actionsFrame(for: f), display: true)
@@ -154,12 +160,25 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
         super.sendEvent(event)
     }
 
-    func windowDidMove(_ notification: Notification) {
-        actions.setFrame(actionsFrame(for: frame), display: true)
-        ShelfManager.shared.save()
-    }
+    func windowDidMove(_ notification: Notification) { ShelfManager.shared.save() }  // Aktionsleiste folgt als Kindfenster
 
     func windowDidResize(_ notification: Notification) { invalidateShadow() }
+
+    /// Form für den Fensterschatten. Ohne sie zeichnet macOS 26+ beim Schlüsselfenster (Klick, Quick Look) einen
+    /// eckigen Schatten samt Kante um das ganze Fenster – der „Kasten“ hinter der runden Ablage.
+    /// Private AppKit-Methode (wie bei NSVisualEffectView.maskImage); wird nur aufgerufen, nie vorausgesetzt.
+    @objc func _cornerMask() -> NSImage? { Self.cornerMask }
+
+    private static let cornerMask: NSImage = {
+        let r = ShelfView.radius, d = r * 2 + 1
+        let img = NSImage(size: NSSize(width: d, height: d), flipped: false) { rect in
+            NSBezierPath(roundedRect: rect, xRadius: r, yRadius: r).fill()
+            return true
+        }
+        img.capInsets = NSEdgeInsets(top: r, left: r, bottom: r, right: r)
+        img.resizingMode = .stretch
+        return img
+    }()
 
     func numberOfPreviewItems(in panel: QLPreviewPanel!) -> Int { shelf.items.count }
     func previewPanel(_ panel: QLPreviewPanel!, previewItemAt index: Int) -> QLPreviewItem! { shelf.items[index].url as NSURL }
