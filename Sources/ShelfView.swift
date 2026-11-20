@@ -14,8 +14,14 @@ struct ShelfView: View {
     private var edge: Color { scheme == .dark ? .white.opacity(0.2) : .black.opacity(0.12) }
     private var detail: Bool { shelf.expanded && !shelf.items.isEmpty }
     private var shown: Bool { shelf.appeared && !shelf.closing }
-    /// Wechsel klein ↔ groß: Inhalt blobbt kurz mit (0,96 → 1), bei reduzierter Bewegung nur Fade.
-    private var swap: AnyTransition { Motion.enabled ? .scale(scale: 0.96).combined(with: .opacity) : .opacity }
+    /// Wechsel klein ↔ groß: nur weiches Überblenden, kein Skalieren. Aufklappen: Klein 0,12 s aus, Detail 0,2 s ein (ab 0,08 s).
+    /// Zuklappen: Detail 0,1 s aus, Klein 0,14 s ein. Reduzierte Bewegung: 0,15 s Fade.
+    private func fade(_ d: Double, delay: Double = 0) -> AnyTransition {
+        guard Motion.userOn else { return .identity }
+        return AnyTransition.opacity.animation(.easeOut(duration: Motion.enabled ? d : 0.15).delay(Motion.enabled ? delay : 0))
+    }
+    private var detailSwap: AnyTransition { .asymmetric(insertion: fade(0.2, delay: 0.08), removal: fade(0.1)) }
+    private var smallSwap: AnyTransition { .asymmetric(insertion: fade(0.14, delay: 0.04), removal: fade(0.12)) }
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: Self.radius, style: .continuous)
@@ -27,14 +33,14 @@ struct ShelfView: View {
                     // layouten (Raster-Spalten fließen sonst bei jeder Breite um); das Fenster schneidet ihn nur zu.
                     DetailView(shelf: shelf, ns: ns) { shelf.expanded = false }
                         .frame(width: ShelfPanel.detailSize.width, height: ShelfPanel.detailSize.height)
-                        .transition(swap)
+                        .transition(detailSwap)
                 } else {
                     VStack(spacing: 0) {
                         topBar
                         content
                     }
                     .frame(width: ShelfPanel.width, height: ShelfPanel.collapsedHeight)
-                    .transition(swap)
+                    .transition(smallSwap)
                 }
             }
             .popScale(shown: shown, closing: shelf.closing)
@@ -58,7 +64,7 @@ struct ShelfView: View {
         }
         .clipShape(shape)
         .overlay(shape.strokeBorder(targeted ? Color.accentColor : (GlassKit.liquid ? .clear : edge), lineWidth: targeted ? 2.5 : 1).allowsHitTesting(false))
-        .animation(detail ? Motion.pop : Motion.close, value: detail)  // Zuklappen schneller (Ease-in)
+        .animation(detail ? Motion.expand : Motion.close, value: detail)  // Aufklappen ruhig, Zuklappen schneller (Ease-in)
         .animation(Motion.smooth, value: shelf.items.isEmpty)
         .animation(Motion.snappy, value: targeted)
         .onHover { shelf.setHover("main", $0) }
@@ -105,7 +111,7 @@ struct ShelfView: View {
         return ZStack {
             ForEach(Array(shown.enumerated()), id: \.element.id) { i, item in
                 let d = CGFloat(i - (shown.count - 1)) * 3  // ältere Dateien liegen 3 pt versetzt dahinter
-                Thumb(url: item.url, maxW: 100, maxH: 104).matchedGeometryEffect(id: item.id, in: ns).offset(x: d, y: -d).allowsHitTesting(false)
+                Thumb(url: item.url, maxW: 100, maxH: 104).offset(x: d, y: -d).allowsHitTesting(false)
                     .transition(Motion.enabled ? .scale(scale: 0.6).combined(with: .opacity) : .opacity)
             }
         }

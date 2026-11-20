@@ -80,7 +80,7 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
                 self.resizeGen += 1
                 let gen = self.resizeGen
                 NSAnimationContext.runAnimationGroup({ c in
-                    // Aufklappen: Ease-out 0,24 s; Zuklappen halb so lang mit Ease-in (Schließen geht schneller).
+                    // Aufklappen: Ease-out (0,16, 1, 0,3, 1) 0,34 s ohne Überschwingen; Zuklappen 0,14 s mit Ease-in.
                     c.duration = open ? Motion.Curve.expand : Motion.Curve.collapse
                     c.timingFunction = open ? Motion.Curve.enter : Motion.Curve.exit
                     self.animator().setFrame(f, display: true)

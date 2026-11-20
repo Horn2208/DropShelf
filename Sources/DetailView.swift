@@ -59,10 +59,10 @@ struct DetailView: View {
             ScrollView {
                 if mode == "grid" {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 110, maximum: 140), spacing: 8)], spacing: 8) {
-                        ForEach(items) { DetailCell(shelf: shelf, item: $0, grid: true, ns: ns) }
+                        ForEach(Array(items.enumerated()), id: \.element.id) { DetailCell(shelf: shelf, item: $1, index: $0, grid: true) }
                     }
                 } else {
-                    LazyVStack(spacing: 2) { ForEach(items) { DetailCell(shelf: shelf, item: $0, grid: false, ns: ns) } }
+                    LazyVStack(spacing: 2) { ForEach(Array(items.enumerated()), id: \.element.id) { DetailCell(shelf: shelf, item: $1, index: $0, grid: false) } }
                 }
             }
             .padding(.horizontal, 12).padding(.bottom, 12)
@@ -110,22 +110,23 @@ struct DetailView: View {
 private struct DetailCell: View {
     let shelf: Shelf
     let item: Shelf.Item
+    let index: Int
     let grid: Bool
-    let ns: Namespace.ID
     @State private var hover = false
+    @State private var faded = false  // sanftes Einblenden der ersten Zellen, ohne Bewegung
     @State private var meta = ""
 
     var body: some View {
         Group {
             if grid {
                 VStack(spacing: 4) {
-                    Thumb(url: item.url, maxW: 96, maxH: 80).matchedGeometryEffect(id: item.id, in: ns).frame(height: 84)
+                    Thumb(url: item.url, maxW: 96, maxH: 80).frame(height: 84)
                     label(.center)
                 }
                 .padding(8).frame(maxWidth: .infinity)
             } else {
                 HStack(spacing: 10) {
-                    Thumb(url: item.url, maxW: 32, maxH: 32, shadow: false).matchedGeometryEffect(id: item.id, in: ns).frame(width: 36, height: 36)
+                    Thumb(url: item.url, maxW: 32, maxH: 32, shadow: false).frame(width: 36, height: 36)
                     label(.leading)
                     Spacer(minLength: 0)
                 }
@@ -133,6 +134,12 @@ private struct DetailCell: View {
             }
         }
         .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.white.opacity(hover ? 0.06 : 0)))
+        .opacity(faded || index >= 6 || !Motion.enabled ? 1 : 0)
+        .onAppear {
+            // Erste 6 Zellen: 20 ms versetzt, je 0,1 s Fade (zusammen ≤ 0,2 s); der Rest blendet mit dem Fenster ein.
+            guard Motion.enabled else { return }
+            withAnimation(.easeOut(duration: 0.1).delay(0.08 + Double(index) * 0.02)) { faded = true }
+        }
         .onHover { hover = $0 }
         .task(id: item.url) { meta = FileInfo.subtitle(item.url) }
         .overlay {

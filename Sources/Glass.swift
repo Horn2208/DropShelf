@@ -9,9 +9,9 @@ enum Motion {
     /// Bei reduzierter Bewegung nur Fade, ohne Animationen gar nichts.
     private static var reduced: Animation? { userOn ? .easeOut(duration: 0.15) : nil }
 
-    /// Kurven/Dauern (UX-Motion-Regeln): Öffnen/Aufklappen Ease-out ~0,24 s, Schließen/Zuklappen Ease-in in ½ der Zeit.
+    /// Kurven/Dauern (UX-Motion-Regeln): Öffnen/Aufklappen Ease-out 0,34 s (Aufklappen), Schließen/Zuklappen Ease-in in ½ der Zeit.
     enum Curve {
-        static let expand = 0.24, collapse = 0.12
+        static let expand = 0.34, collapse = 0.14
         static var enter: CAMediaTimingFunction { CAMediaTimingFunction(controlPoints: 0.16, 1, 0.3, 1) }
         static var exit: CAMediaTimingFunction { CAMediaTimingFunction(controlPoints: 0.7, 0, 0.84, 0) }
     }
@@ -37,6 +37,11 @@ enum Motion {
         guard enabled else { return reduced }
         if #available(macOS 14, *) { return .snappy(duration: 0.15) }
         return .spring(response: 0.15, dampingFraction: 0.85)
+    }
+    /// Aufklappen klein → groß: ein ruhiges Ease-out ohne Überschwingen (Fenster-Animation hat dieselbe Kurve).
+    static var expand: Animation? {
+        guard enabled else { return reduced }
+        return .timingCurve(0.16, 1, 0.3, 1, duration: Curve.expand)
     }
     static func scale(_ from: CGFloat, on: Bool) -> CGFloat { enabled && !on ? from : 1 }
 }

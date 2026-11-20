@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 @MainActor
 enum FunEffects {
     private static var sound: NSSound?
+    private static var stopWork: DispatchWorkItem?
     private static var flashWindow: NSWindow?
 
     static func onPop(screen: NSScreen?) {
@@ -16,9 +17,19 @@ enum FunEffects {
 
     static func playSound() {
         guard let p = UserDefaults.standard.string(forKey: "funSoundPath") else { return }
+        stopSound()
+        guard let s = NSSound(contentsOfFile: p, byReference: true) else { return }
+        sound = s
+        s.play()
+        let max = UserDefaults.standard.object(forKey: "funSoundMaxSeconds") as? Double ?? 10
+        let w = DispatchWorkItem { [weak s] in MainActor.assumeIsolated { s?.stop() } }
+        stopWork = w
+        DispatchQueue.main.asyncAfter(deadline: .now() + max, execute: w)
+    }
+
+    private static func stopSound() {
+        stopWork?.cancel()
         sound?.stop()
-        sound = NSSound(contentsOfFile: p, byReference: true)
-        sound?.play()
     }
 
     /// Bild 1 s über den ganzen Bildschirm; nie Fokus, nie klickbar. Nur ein Blitz gleichzeitig.
