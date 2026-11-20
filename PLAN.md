@@ -134,3 +134,28 @@ macOS-App für eine schwebende Ablage (ähnlich wie Dropover, aber selbst gebaut
 
 ## Phase 11 – Einstellungen im Canopy-Stil
 > **Einstellungsfenster (`SettingsView.swift`) im Look von Canopy 2:** Fenster ~660×760 pt (Mindestgröße 640×640, vertikal skalierbar), einheitlich dunkler Hintergrund, Ampelknöpfe oben links über der Seitenleiste (`.fullSizeContentView`, transparente Titelleiste, kein Titeltext). Seitenleiste ~188 pt, leicht abgesetzter Ton: oben ein kapselförmiges Suchfeld „Suchen“ (36 pt, Lupe, dezente Füllung), das Seitenleisteneinträge und Einstellungszeilen nach Titel filtert; Einträge mit 40-pt-Quadrat (Radius ~10, Füllung ~weiß 8 %, 1-pt-Rand ~weiß 10 %, einfarbiges weißes SF Symbol) und Titel 15 pt medium; gewählter Eintrag mit großer Hervorhebung (Radius 14, ~weiß 12 %), die per `matchedGeometryEffect` in ~180 ms ease-out gleitet; Hover 120 ms; „Bewegung reduzieren“ → keine Bewegung. Gruppen durch Haarlinien getrennt: oben Allgemein, Aussehen, Kürzel; Abschnitt „Ablage“ (grau): Aktivierung, Interaktionen, Aktionen, Verlauf, Spaß; unten angeheftet: Berechtigungen, Über. Jede bisherige Einstellung bleibt erhalten. Detailbereich: Kopf mit SF Symbol (28 pt, dünn) + fetter Titel (30 pt); bei „Allgemein“ ein Hero-Block mit blauem Radialglühen, rundem App-Symbol (96 pt), „DropShelf“ (22 pt, fett) und grauer Version. Gruppen: grauer Abschnittstitel (13 pt, semibold) über jeder Karte, Karte mit Radius 14, Füllung ~6 %, Rand ~8 %, Zeilen ≥52 pt mit eingerückten Haarlinien, große Schalter (`.controlSize(.large)`) rechts, Picker als randloses „Wert ⌄“-Menü, graue Fußnote unter der Karte. Heller Modus bleibt lesbar (nur semantische Farben / `primary`-Deckkraft).
+
+## Phase 12 – Sound-Länge, ruhigeres Aufklappen, Zwischenablage-Verlauf (⌃V)
+> *Aus Nutzer-Feedback vom 2026-11-20.* **Nicht auf dem Bildschirm des Nutzers testen**: keine Testfenster, Screenshots oder CGEvents. Nur bauen, Code lesen und Selbsttests ohne UI; Sichtprüfungen als „Bitte von Hand testen“ auflisten.
+>
+> 1. **Sound-Länge begrenzen:** In der Karte „Spaß“ unter dem Sound einen Regler „Maximale Länge“ ergänzen: 1–30 s, Schritt 1 s, Standard 10 s, Anzeige „10 s“ mit `monospacedDigit()`, gespeichert als `funSoundMaxSeconds`. `FunEffects` stoppt den `NSSound` nach dieser Zeit (Referenz halten, abbrechbares `DispatchWorkItem`). Ein neuer Pop stoppt den vorherigen Sound. „Vorhören“ beachtet die Grenze ebenfalls; kürzere Sounds laufen normal zu Ende.
+> 2. **Ruhigeres Aufklappen** (klein → große Ansicht mit mehr Dateien), nach den ux-motion-Regeln für große Flächen:
+>    - Ein weiches Ease-out `(0.16, 1, 0.3, 1)` über ~0,32–0,36 s, ohne Feder-Überschwingen und ohne Skalieren des gesamten Inhalts.
+>    - Die kleine Ansicht blendet in ~0,12 s aus; die Detail-Ansicht blendet ab ~0,08 s in ~0,2 s ein.
+>    - Raster- und Listeneinträge ploppen nicht einzeln. Höchstens sanftes Einblenden, die ersten 6–8 um 20–30 ms versetzt (gesamt ≤ 200 ms), der Rest gemeinsam, ohne Bewegung.
+>    - Die Aktionsknöpfe gleiten nur mit dem Fenster mit, ohne Versatz und ohne Federn.
+>    - Zuklappen bleibt schnell (Ease-in ~0,14 s) und unterbrechbar. Bei „Bewegung reduzieren“: sofortige Größenänderung + 0,15 s Einblenden.
+>    - Die Leistungsmaßnahmen aus Phase 10 bleiben (feste Inhaltsgrößen, Schatten/Glas erst am Ende, Vorschau-Cache). Das Aufploppen der kleinen Ablage bleibt unverändert.
+> 3. **Allgemeiner Zwischenablage-Verlauf über ⌃V:** Ein globales Kürzel ⌃V öffnet an der Mausposition ein Glas-Panel mit dem Verlauf **aller** kopierten Inhalte, nicht nur der Ablagen. Registrierung per Carbon wie in `HotKey.swift`; im Kürzel-Rekorder änderbar und abschaltbar.
+>    - **Inhalte:** Text, Links, Bilder und Dateien, jeweils mit Vorschau bzw. Symbol, Quell-App (`NSWorkspace.frontmostApplication` beim Kopieren) und relativer Zeit.
+>    - **Erfassen:** `NSPasteboard.general.changeCount` etwa alle 0,5 s prüfen (leichter Timer mit `tolerance`, nur den Zähler vergleichen, Inhalte erst bei Änderung lesen). Einträge mit `org.nspasteboard.ConcealedType` / `TransientType` (Passwortmanager) ignorieren. In den Einstellungen gibt es eine Ausschlussliste für Apps. Doppelte Einträge zusammenführen und nach oben holen.
+>    - **Speichern:** in Application Support/DropShelf/clipboard/ (Text und URLs als JSON, Bilder als PNG). Das Limit ist einstellbar (Standard 200 Einträge), dazu ein Knopf „Verlauf löschen“.
+>    - **Panel:**
+>      - Suchfeld oben; Tippen filtert sofort.
+>      - Liste mit Pfeiltasten bedienbar; ⌘1–9 als Schnellwahl; Esc schließt.
+>      - ⏎ legt den Eintrag in die Zwischenablage und fügt ihn – falls Bedienungshilfen erlaubt – per simuliertem ⌘V in die vorherige App ein. Sonst nur kopieren und kurz „Kopiert“ anzeigen.
+>      - Einträge lassen sich per Drag herausziehen oder auf eine Ablage ziehen und optional anpinnen.
+>    - **Abgrenzung:** Der bisherige Ablagen-Verlauf (⌃⌥V) bleibt bestehen. Im Menü einen Eintrag „Zwischenablage-Verlauf…“ ergänzen. Hinweis in den Einstellungen: ⌃V ist in manchen Textfeldern sonst „Seite runter“ (Emacs-Tastenbelegung).
+>    - **Einstellungen:** neuer Bereich „Zwischenablage“ im Canopy-Stil mit an/aus, Limit, Ausschlüssen, „Bilder speichern“ an/aus und „Verlauf löschen“.
+>    - **Leistung:** im Leerlauf unter 0,5 % CPU; keine Arbeit, solange sich nichts ändert.
+> 4. Danach Debug- und Release-Build, committen, pushen und die App einmal normal neu starten.
