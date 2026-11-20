@@ -13,8 +13,14 @@ enum SettingsOpener {
     static func open() {
         if window == nil {
             let w = NSWindow(contentViewController: NSHostingController(rootView: SettingsView()))
-            w.title = "DropShelf Einstellungen"
-            w.styleMask = [.titled, .closable]  // feste Größe: nicht skalierbar
+            w.styleMask = [.titled, .closable, .resizable, .fullSizeContentView]
+            w.titleVisibility = .hidden  // Ampelknöpfe schweben über der Seitenleiste
+            w.titlebarAppearsTransparent = true
+            w.isMovableByWindowBackground = true
+            w.standardWindowButton(.miniaturizeButton)?.isHidden = true
+            w.standardWindowButton(.zoomButton)?.isHidden = true
+            w.setContentSize(NSSize(width: 660, height: 760))
+            w.contentMinSize = NSSize(width: 640, height: 640)
             w.isReleasedWhenClosed = false
             w.center()
             window = w
@@ -25,117 +31,206 @@ enum SettingsOpener {
 }
 
 enum SettingsSection: String, CaseIterable, Identifiable {
-    case activation, interactions, general, appearance, actions, perms, about
+    case general, appearance, shortcuts, activation, interactions, actions, history, fun, perms, about
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .activation: "Fensteraktivierung"
-        case .interactions: "Fensterinteraktionen"
         case .general: "Allgemein"
         case .appearance: "Aussehen"
+        case .shortcuts: "Kürzel"
+        case .activation: "Aktivierung"
+        case .interactions: "Interaktionen"
         case .actions: "Aktionen"
+        case .history: "Verlauf"
+        case .fun: "Spaß"
         case .perms: "Berechtigungen"
         case .about: "Über"
         }
     }
     var symbol: String {
         switch self {
-        case .activation: "hand.draw"
-        case .interactions: "rectangle.on.rectangle"
         case .general: "gearshape"
         case .appearance: "paintbrush"
+        case .shortcuts: "command"
+        case .activation: "hand.draw"
+        case .interactions: "rectangle.on.rectangle"
         case .actions: "square.grid.2x2"
+        case .history: "clock.arrow.circlepath"
+        case .fun: "party.popper"
         case .perms: "lock.shield"
         case .about: "info.circle"
         }
     }
-    var color: Color {
+    /// Zusätzliche Suchbegriffe (Zeilentitel der Seite).
+    var keywords: String {
         switch self {
-        case .activation: .blue
-        case .interactions: .green
-        case .general: .gray
-        case .appearance: .purple
-        case .actions: .orange
-        case .perms: .red
-        case .about: .gray
+        case .general: "Anmelden Start Ablage öffnen"
+        case .appearance: "Glas Intensität Liquid Lichtbrechung Reichweite Canopy Animationen"
+        case .shortcuts: "Tastenkürzel Hotkey Neue Ablage Zwischenablage AirDrop Verlauf"
+        case .activation: "Schütteln Empfindlichkeit Modifikatortaste"
+        case .interactions: "Schließen leer AirDrop fragen Ansicht Raster Liste"
+        case .actions: "Knöpfe Quick Look ZIP Teilen Finder Pfade"
+        case .history: "Verlauf speichern Größe"
+        case .fun: "Sound Bild Aufploppen"
+        case .perms: "Bedienungshilfen Eingabeüberwachung Mitteilungen Ordner Dateizugriff"
+        case .about: "Version Projektseite"
         }
     }
-    var blurb: String {
-        switch self {
-        case .activation: "Wie und womit neue Ablagen erscheinen."
-        case .interactions: "Wie sich Ablagen beim Benutzen verhalten."
-        case .general: "Start, Verlauf und Grundverhalten der App."
-        case .appearance: "Glas, Animationen und etwas Spaß."
-        case .actions: "Die Knöpfe unter der Ablage – höchstens fünf gleichzeitig."
-        case .perms: "Was macOS DropShelf erlaubt hat."
-        case .about: "Version und Projektseite."
-        }
-    }
+    func matches(_ q: String) -> Bool { q.isEmpty || title.localizedStandardContains(q) || keywords.localizedStandardContains(q) }
 }
 
 private let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
 
+private struct QueryKey: EnvironmentKey { static let defaultValue = "" }
+private extension EnvironmentValues {
+    var settingsQuery: String { get { self[QueryKey.self] } set { self[QueryKey.self] = newValue } }
+}
+
+/// Blendet eine Zeile aus, wenn die Suche ihren Titel nicht trifft.
+private struct SearchFilter: ViewModifier {
+    @Environment(\.settingsQuery) private var q
+    let title: String
+    func body(content: Content) -> some View {
+        if q.isEmpty || title.localizedStandardContains(q) { content }
+    }
+}
+
+private extension View {
+    func searchTitle(_ t: String) -> some View { modifier(SearchFilter(title: t)) }
+}
+
 struct SettingsView: View {
-    @AppStorage("settingsTab") private var tab = SettingsSection.activation.rawValue
+    @AppStorage("settingsTab") private var tab = SettingsSection.general.rawValue
+    @State private var query = ""
+    @Namespace private var ns
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private let top: [SettingsSection] = [.general, .appearance, .shortcuts]
+    private let tray: [SettingsSection] = [.activation, .interactions, .actions, .history, .fun]
+    private let bottom: [SettingsSection] = [.perms, .about]
 
     var body: some View {
-        let current = SettingsSection(rawValue: tab) ?? .activation
+        let current = SettingsSection(rawValue: tab) ?? .general
         HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 2) {
-                ForEach(SettingsSection.allCases) { s in
-                    Button { tab = s.rawValue } label: {
-                        HStack(spacing: 9) {
-                            SidebarIcon(symbol: s.symbol, color: s.color)
-                            Text(s.title).font(.system(size: 13))
-                            Spacer(minLength: 0)
-                        }
-                        .padding(.horizontal, 8).padding(.vertical, 5)
-                        .background(RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color.primary.opacity(s == current ? 0.1 : 0)))
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
-                Spacer()
-                HStack(spacing: 8) {
-                    Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 32, height: 32)
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("DropShelf").font(.system(size: 12, weight: .semibold))
-                        Text(appVersion).font(.system(size: 11)).foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.horizontal, 8)
-            }
-            .padding(10)
-            .frame(width: 210)
-            .background(.quaternary.opacity(0.5))
-            Divider()
+            sidebar(current)
+                .frame(width: 196)
+                .background(Color.primary.opacity(0.04).ignoresSafeArea())
+            Rectangle().fill(Color.primary.opacity(0.08)).frame(width: 1).ignoresSafeArea()
             SettingsPage(section: current) {
                 switch current {
-                case .activation: ActivationPage()
-                case .interactions: InteractionsPage()
                 case .general: GeneralPage()
                 case .appearance: AppearancePage()
+                case .shortcuts: ShortcutsPage()
+                case .activation: ActivationPage()
+                case .interactions: InteractionsPage()
                 case .actions: ActionsPage()
+                case .history: HistoryPage()
+                case .fun: FunPage()
                 case .perms: PermissionsPage()
                 case .about: AboutPage()
                 }
             }
             .id(current)
+            .environment(\.settingsQuery, query)
         }
-        .frame(width: 720, height: 520)
+        .frame(minWidth: 640, idealWidth: 660, minHeight: 640, idealHeight: 760)
+        .background(Color(nsColor: .windowBackgroundColor).ignoresSafeArea())
+    }
+
+    private func sidebar(_ current: SettingsSection) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass").font(.system(size: 14, weight: .medium)).foregroundStyle(.secondary)
+                TextField("Suchen", text: $query).textFieldStyle(.plain).font(.system(size: 15))
+                if !query.isEmpty {
+                    Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }
+                        .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 12).frame(height: 36)
+            .background(Capsule().fill(Color.primary.opacity(0.07)))
+            .padding(.horizontal, 12).padding(.top, 46).padding(.bottom, 12)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 2) {
+                    group(top, current)
+                    if tray.contains(where: { $0.matches(query) }) {
+                        if top.contains(where: { $0.matches(query) }) { divider }
+                        header("Ablage")
+                    }
+                    group(tray, current)
+                }
+                .padding(.horizontal, 10)
+            }
+            .scrollIndicators(.hidden)
+
+            VStack(alignment: .leading, spacing: 2) {
+                if bottom.contains(where: { $0.matches(query) }) { divider }
+                group(bottom, current)
+            }
+            .padding(.horizontal, 10).padding(.top, 4).padding(.bottom, 12)
+        }
+    }
+
+    private var divider: some View {
+        Rectangle().fill(Color.primary.opacity(0.1)).frame(height: 1).padding(.horizontal, 6).padding(.vertical, 8)
+    }
+
+    private func header(_ t: String) -> some View {
+        Text(t).font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary).padding(.horizontal, 8).padding(.top, 4).padding(.bottom, 4)
+    }
+
+    @ViewBuilder private func group(_ items: [SettingsSection], _ current: SettingsSection) -> some View {
+        ForEach(items.filter { $0.matches(query) }) { s in
+            SidebarRow(section: s, selected: s == current, ns: ns, reduceMotion: reduceMotion) {
+                if reduceMotion { tab = s.rawValue } else { withAnimation(.easeOut(duration: 0.18)) { tab = s.rawValue } }
+            }
+        }
     }
 }
 
 // MARK: Bausteine
 
+private struct SidebarRow: View {
+    let section: SettingsSection
+    let selected: Bool
+    let ns: Namespace.ID
+    let reduceMotion: Bool
+    let action: () -> Void
+    @State private var hover = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 9) {
+                SidebarIcon(symbol: section.symbol)
+                Text(section.title).font(.system(size: 15, weight: .medium)).lineLimit(1).minimumScaleFactor(0.75)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 6).padding(.vertical, 3)
+            .background {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.primary.opacity(hover && !selected ? 0.06 : 0))
+                    if selected {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.primary.opacity(0.12))
+                            .matchedGeometryEffect(id: "selection", in: ns)
+                    }
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { h in if reduceMotion { hover = h } else { withAnimation(.easeOut(duration: 0.12)) { hover = h } } }
+    }
+}
+
 struct SidebarIcon: View {
     let symbol: String
-    let color: Color
+    var size: CGFloat = 40
     var body: some View {
-        Image(systemName: symbol).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white)
-            .frame(width: 24, height: 24)
-            .background(color.gradient, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        Image(systemName: symbol).font(.system(size: size * 0.45, weight: .regular)).foregroundStyle(.primary.opacity(0.9))
+            .frame(width: size, height: size)
+            .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: size / 4, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: size / 4, style: .continuous).strokeBorder(Color.primary.opacity(0.1), lineWidth: 1))
     }
 }
 
@@ -144,55 +239,98 @@ private struct SettingsPage<Content: View>: View {
     @ViewBuilder let content: Content
     var body: some View {
         ScrollView {
-            VStack(spacing: 14) {
-                VStack(spacing: 4) {
-                    Text(section.title).font(.system(size: 24, weight: .bold))
-                    Text(section.blurb).font(.system(size: 12)).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 22) {
+                HStack(spacing: 12) {
+                    Image(systemName: section.symbol).font(.system(size: 28, weight: .light))
+                    Text(section.title).font(.system(size: 30, weight: .bold))
                 }
-                .padding(.top, 22).padding(.bottom, 6)
+                .padding(.top, 44)
+                if section == .general { Hero() }
                 content
             }
-            .padding(.horizontal, 24).padding(.bottom, 24)
-            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 28).padding(.bottom, 28)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
 
-/// Gruppierte Karte; Zeilen mit `SettingsDivider` trennen.
+private struct Hero: View {
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 96, height: 96)
+                .clipShape(Circle())
+                .overlay(Circle().strokeBorder(Color.white.opacity(0.25), lineWidth: 1))
+                .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
+                .padding(.bottom, 6)
+            Text("DropShelf").font(.system(size: 22, weight: .bold))
+            Text("Version \(appVersion)").font(.system(size: 14)).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, 28)
+        .background {
+            ZStack {
+                RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color(red: 0.04, green: 0.07, blue: 0.2).opacity(0.35))
+                RadialGradient(colors: [Color(red: 0.15, green: 0.4, blue: 1).opacity(0.55), .clear],
+                               center: .center, startRadius: 0, endRadius: 230)
+            }
+            .mask(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        }
+    }
+}
+
+/// Gruppe: grauer Titel oberhalb, Karte, optionale Fußnote darunter.
+private struct SettingsGroup<Content: View>: View {
+    var title: String?
+    var footer: String?
+    var footerColor: Color = .secondary
+    @ViewBuilder let content: Content
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let title { Text(title).font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary).padding(.horizontal, 6) }
+            SettingsCard { content }
+            if let footer {
+                Text(footer).font(.system(size: 12)).foregroundStyle(footerColor).padding(.horizontal, 6)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
 private struct SettingsCard<Content: View>: View {
     @ViewBuilder let content: Content
     var body: some View {
         VStack(spacing: 0) { content }
+            .padding(.bottom, -1)  // letzte Trennlinie liegt außerhalb und wird abgeschnitten
             .frame(maxWidth: .infinity)
-            .background(.quaternary, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.primary.opacity(0.08), lineWidth: 1))
     }
-}
-
-private struct SettingsDivider: View {
-    var body: some View { Divider().padding(.leading, 12) }
 }
 
 private struct SettingsRow<Control: View>: View {
     var symbol: String?
+    var dot: Color?
     let title: String
     var subtitle: String?
     @ViewBuilder let control: Control
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             if let symbol {
-                Image.symbol(symbol).font(.system(size: 14)).foregroundStyle(.secondary).frame(width: 22)
+                Image.symbol(symbol).font(.system(size: 16)).foregroundStyle(.secondary).frame(width: 24)
             }
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title).font(.system(size: 13))
+            if let dot { Circle().fill(dot).frame(width: 10, height: 10).frame(width: 24) }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.system(size: 15)).lineLimit(1)
                 if let subtitle {
-                    Text(subtitle).font(.system(size: 11)).foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    Text(subtitle).font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
             }
             Spacer(minLength: 8)
             control
         }
-        .padding(.horizontal, 12).padding(.vertical, 9)
+        .padding(.horizontal, 16).padding(.vertical, 10).frame(minHeight: 52)
+        .overlay(alignment: .bottom) { Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 1).padding(.leading, 16) }
+        .searchTitle(title)
     }
 }
 
@@ -202,133 +340,40 @@ private struct SettingsToggleRow: View {
     var subtitle: String?
     @Binding var isOn: Bool
     var body: some View {
-        SettingsRow(symbol: symbol, title: title, subtitle: subtitle) { Toggle("", isOn: $isOn).labelsHidden().toggleStyle(.switch).controlSize(.small) }
+        SettingsRow(symbol: symbol, title: title, subtitle: subtitle) {
+            Toggle("", isOn: $isOn).labelsHidden().toggleStyle(.switch).controlSize(.large)
+        }
     }
-}
-
-private func footnote(_ text: String) -> some View {
-    Text(text).font(.system(size: 11)).foregroundStyle(.secondary)
-        .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 6)
 }
 
 private func sliderControl(_ value: Binding<Double>, _ low: String, _ high: String) -> some View {
     HStack(spacing: 6) {
-        Text(low).font(.system(size: 11)).foregroundStyle(.secondary).fixedSize()
-        Slider(value: value, in: 0...1).frame(width: 110)
-        Text(high).font(.system(size: 11)).foregroundStyle(.secondary).fixedSize()
+        Text(low).font(.system(size: 12)).foregroundStyle(.secondary).fixedSize()
+        Slider(value: value, in: 0...1).frame(width: 100)
+        Text(high).font(.system(size: 12)).foregroundStyle(.secondary).fixedSize()
     }
+}
+
+/// „Wert ⌄“-Menü ohne Rahmen.
+private func menuPicker<T: Hashable, C: View>(_ sel: Binding<T>, @ViewBuilder _ items: () -> C) -> some View {
+    Picker("", selection: sel, content: items).labelsHidden().pickerStyle(.menu).menuStyle(.borderlessButton).fixedSize()
 }
 
 // MARK: Seiten
 
-private struct ActivationPage: View {
-    @AppStorage("hotkeyShelfEnabled") private var shelfOn = true
-    @AppStorage("hotkeyClipboardEnabled") private var clipOn = true
-    @AppStorage("hotkeyAirDropEnabled") private var airOn = true
-    @AppStorage("hotkeyHistoryEnabled") private var histOn = true
-    @AppStorage("shakeEnabled") private var shakeOn = true
-    @AppStorage("shakeSensitivity") private var shakeSens = 0.5
-    @AppStorage("shakeModifier") private var modifier = "none"
-
-    var body: some View {
-        SettingsCard {
-            SettingsToggleRow(symbol: "hand.draw", title: "Schütteln beim Ziehen",
-                        subtitle: "Beim Ziehen einer Datei die Maus hin und her bewegen. Braucht „Bedienungshilfen“.", isOn: $shakeOn)
-            SettingsDivider()
-            SettingsRow(symbol: "dial.medium", title: "Empfindlichkeit") { sliderControl($shakeSens, "niedrig", "hoch") }
-                .disabled(!shakeOn)
-            SettingsDivider()
-            SettingsRow(symbol: "option", title: "Mit Modifikatortaste aktivieren",
-                        subtitle: "Beim Ziehen mit gehaltener Taste öffnet sich sofort eine Ablage.") {
-                Picker("", selection: $modifier) {
-                    Text("Aus").tag("none"); Text("⇧ Umschalt").tag("shift"); Text("⌥ Wahl").tag("option")
-                    Text("⌃ Control").tag("control"); Text("⌘ Befehl").tag("command")
-                }
-                .labelsHidden().frame(width: 120)
-            }
-        }
-        SettingsCard {
-            shortcut("Neue Ablage an der Maus", "plus.rectangle.on.rectangle", 2, $shelfOn)
-            SettingsDivider()
-            shortcut("Ablage aus Zwischenablage", "doc.on.clipboard", 4, $clipOn)
-            SettingsDivider()
-            shortcut("Aktive Ablage per AirDrop", "airdrop", 1, $airOn)
-            SettingsDivider()
-            shortcut("Verlauf öffnen", "clock.arrow.circlepath", 3, $histOn)
-        }
-        footnote("Zum Ändern das Feld anklicken und das neue Kürzel drücken (mindestens ⌃, ⌥ oder ⌘). Esc bricht ab. „Neue Ablage an der Maus“ öffnet sie dort, wo der Mauszeiger steht.")
-            .onChange(of: shelfOn) { _ in HotKey.shared.sync() }
-            .onChange(of: clipOn) { _ in HotKey.shared.sync() }
-            .onChange(of: airOn) { _ in HotKey.shared.sync() }
-            .onChange(of: histOn) { _ in HotKey.shared.sync() }
-            .onChange(of: modifier) { _ in ShakeDetector.shared.sync() }
-            .onChange(of: shakeOn) { on in
-                ShakeDetector.shared.sync()
-                if on, !AXIsProcessTrusted() { ShakeDetector.requestAccessibility() }  // nur auf Wunsch, nie beim Start
-            }
-    }
-
-    private func shortcut(_ title: String, _ symbol: String, _ id: UInt32, _ on: Binding<Bool>) -> some View {
-        SettingsRow(symbol: symbol, title: title) {
-            HStack(spacing: 10) {
-                ShortcutRecorder(id: id)
-                Toggle("", isOn: on).labelsHidden().toggleStyle(.switch).controlSize(.small)
-            }
-        }
-    }
-}
-
-private struct InteractionsPage: View {
-    @AppStorage("autoCloseWhenEmpty") private var autoClose = true
-    @AppStorage("askClearAfterAirDrop") private var askClear = true
-    @AppStorage("viewMode") private var mode = "grid"
-
-    var body: some View {
-        SettingsCard {
-            SettingsToggleRow(symbol: "xmark.rectangle", title: "Ablage schließen, wenn sie leer ist",
-                        subtitle: "Nach dem Herausziehen der letzten Datei schließt sich das Fenster.", isOn: $autoClose)
-            SettingsDivider()
-            SettingsToggleRow(symbol: "airdrop", title: "Nach AirDrop fragen",
-                        subtitle: "Ob die Ablage nach dem Senden geleert werden soll.", isOn: $askClear)
-            SettingsDivider()
-            SettingsRow(symbol: "square.grid.2x2", title: "Standard-Ansicht") {
-                Picker("", selection: $mode) { Text("Raster").tag("grid"); Text("Liste").tag("list") }
-                    .labelsHidden().pickerStyle(.segmented).frame(width: 140)
-            }
-        }
-    }
-}
-
 private struct GeneralPage: View {
     @AppStorage("openShelfOnLaunch") private var openOnLaunch = true
-    @AppStorage("historyEnabled") private var history = true
-    @AppStorage("historyLimit") private var historyLimit = 30
     @State private var login = SMAppService.mainApp.status
     @State private var error: String?
 
     var body: some View {
-        SettingsCard {
+        SettingsGroup(title: "Start", footer: error, footerColor: .red) {
             SettingsToggleRow(symbol: "power", title: "Beim Anmelden starten",
-                        subtitle: "Status: \(loginText(login))",
-                        isOn: Binding(get: { login == .enabled }, set: setLogin))
-            SettingsDivider()
+                              subtitle: "Status: \(loginText(login))",
+                              isOn: Binding(get: { login == .enabled }, set: setLogin))
             SettingsToggleRow(symbol: "tray.and.arrow.down", title: "Beim Start Ablage öffnen",
-                        subtitle: "Öffnet eine leere Ablage, wenn keine andere offen ist.", isOn: $openOnLaunch)
+                              subtitle: "Öffnet eine leere Ablage, wenn keine andere offen ist.", isOn: $openOnLaunch)
         }
-        if let error { footnote(error).foregroundStyle(.red) }
-        SettingsCard {
-            SettingsToggleRow(symbol: "clock.arrow.circlepath", title: "Verlauf speichern",
-                        subtitle: "Geschlossene und geleerte Ablagen bleiben wiederherstellbar.", isOn: $history)
-            SettingsDivider()
-            SettingsRow(symbol: "number", title: "Verlaufsgröße") {
-                Picker("", selection: $historyLimit) {
-                    ForEach([10, 30, 50], id: \.self) { Text("\($0) Ablagen").tag($0) }
-                }
-                .labelsHidden().frame(width: 120)
-            }
-            .disabled(!history)
-        }
-        .onChange(of: historyLimit) { _ in HistoryStore.shared.trim() }
     }
 
     private func setLogin(_ on: Bool) {
@@ -356,47 +401,140 @@ private struct AppearancePage: View {
     @AppStorage("refractionStrength") private var strength = 0.6
     @AppStorage("refractionReach") private var reach = 0.5
     @AppStorage("animationsEnabled") private var anim = true
+
+    var body: some View {
+        SettingsGroup(title: "Glas") {
+            SettingsRow(symbol: "circle.lefthalf.filled", title: "Glas-Intensität") { sliderControl($glass, "klar", "dunkel") }
+            if GlassKit.liquid {
+                SettingsToggleRow(symbol: "sparkles", title: "Liquid Glass mit Lichtbrechung",
+                                  subtitle: "Der Inhalt hinter der Ablage wird am Rand wie durch dickes Glas verbogen.", isOn: $refraction)
+                SettingsRow(symbol: "camera.filters", title: "Lichtbrechung am Rand") { sliderControl($strength, "leicht", "stark") }
+                    .disabled(!refraction)
+                SettingsRow(symbol: "arrow.left.and.right", title: "Reichweite der Lichtbrechung") { sliderControl($reach, "schmal", "breit") }
+                    .disabled(!refraction)
+                SettingsRow(symbol: "drop", title: "Klares Glas mit starker Lichtbrechung") {
+                    Button("Wie Canopy") { glass = 0.1; refraction = true; strength = 1; reach = 0.7 }.controlSize(.regular)
+                }
+            }
+        }
+        SettingsGroup(title: "Bewegung",
+                      footer: "„Bewegung reduzieren“ in den Systemeinstellungen wird zusätzlich beachtet (nur Einblenden).") {
+            SettingsToggleRow(symbol: "wand.and.stars", title: "Animationen", isOn: $anim)
+        }
+    }
+}
+
+private struct ShortcutsPage: View {
+    @AppStorage("hotkeyShelfEnabled") private var shelfOn = true
+    @AppStorage("hotkeyClipboardEnabled") private var clipOn = true
+    @AppStorage("hotkeyAirDropEnabled") private var airOn = true
+    @AppStorage("hotkeyHistoryEnabled") private var histOn = true
+
+    var body: some View {
+        SettingsGroup(title: "Globale Kürzel",
+                      footer: "AirDrop sendet die aktive Ablage. Zum Ändern das Feld anklicken und das neue Kürzel drücken (mindestens ⌃, ⌥ oder ⌘). Esc bricht ab. „Neue Ablage“ öffnet sie dort, wo der Mauszeiger steht.") {
+            shortcut("Neue Ablage", "plus.rectangle.on.rectangle", 2, $shelfOn)
+            shortcut("Zwischenablage", "doc.on.clipboard", 4, $clipOn)
+            shortcut("Aktive Ablage per AirDrop", "airdrop", 1, $airOn)
+            shortcut("Verlauf öffnen", "clock.arrow.circlepath", 3, $histOn)
+        }
+        .onChange(of: shelfOn) { _ in HotKey.shared.sync() }
+        .onChange(of: clipOn) { _ in HotKey.shared.sync() }
+        .onChange(of: airOn) { _ in HotKey.shared.sync() }
+        .onChange(of: histOn) { _ in HotKey.shared.sync() }
+    }
+
+    private func shortcut(_ title: String, _ symbol: String, _ id: UInt32, _ on: Binding<Bool>) -> some View {
+        SettingsRow(symbol: symbol, title: title) {
+            HStack(spacing: 10) {
+                ShortcutRecorder(id: id)
+                Toggle("", isOn: on).labelsHidden().toggleStyle(.switch).controlSize(.large)
+            }
+        }
+    }
+}
+
+private struct ActivationPage: View {
+    @AppStorage("shakeEnabled") private var shakeOn = true
+    @AppStorage("shakeSensitivity") private var shakeSens = 0.5
+    @AppStorage("shakeModifier") private var modifier = "none"
+
+    var body: some View {
+        SettingsGroup(title: "Schütteln",
+                      footer: "Beim Ziehen einer Datei die Maus hin und her bewegen. Braucht „Bedienungshilfen“.") {
+            SettingsToggleRow(symbol: "hand.draw", title: "Schütteln beim Ziehen", isOn: $shakeOn)
+            SettingsRow(symbol: "dial.medium", title: "Empfindlichkeit") { sliderControl($shakeSens, "niedrig", "hoch") }
+                .disabled(!shakeOn)
+        }
+        SettingsGroup(title: "Modifikatortaste", footer: "Beim Ziehen mit gehaltener Taste öffnet sich sofort eine Ablage.") {
+            SettingsRow(symbol: "option", title: "Mit Modifikatortaste aktivieren") {
+                menuPicker($modifier) {
+                    Text("Aus").tag("none"); Text("⇧ Umschalt").tag("shift"); Text("⌥ Wahl").tag("option")
+                    Text("⌃ Control").tag("control"); Text("⌘ Befehl").tag("command")
+                }
+            }
+        }
+        .onChange(of: modifier) { _ in ShakeDetector.shared.sync() }
+        .onChange(of: shakeOn) { on in
+            ShakeDetector.shared.sync()
+            if on, !AXIsProcessTrusted() { ShakeDetector.requestAccessibility() }  // nur auf Wunsch, nie beim Start
+        }
+    }
+}
+
+private struct InteractionsPage: View {
+    @AppStorage("autoCloseWhenEmpty") private var autoClose = true
+    @AppStorage("askClearAfterAirDrop") private var askClear = true
+    @AppStorage("viewMode") private var mode = "grid"
+
+    var body: some View {
+        SettingsGroup(title: "Verhalten") {
+            SettingsToggleRow(symbol: "xmark.rectangle", title: "Ablage schließen, wenn sie leer ist",
+                              subtitle: "Nach dem Herausziehen der letzten Datei schließt sich das Fenster.", isOn: $autoClose)
+            SettingsToggleRow(symbol: "airdrop", title: "Nach AirDrop fragen",
+                              subtitle: "Ob die Ablage nach dem Senden geleert werden soll.", isOn: $askClear)
+            SettingsRow(symbol: "square.grid.2x2", title: "Standard-Ansicht") {
+                menuPicker($mode) { Text("Raster").tag("grid"); Text("Liste").tag("list") }
+            }
+        }
+    }
+}
+
+private struct HistoryPage: View {
+    @AppStorage("historyEnabled") private var history = true
+    @AppStorage("historyLimit") private var historyLimit = 30
+
+    var body: some View {
+        SettingsGroup(title: "Verlauf") {
+            SettingsToggleRow(symbol: "clock.arrow.circlepath", title: "Verlauf speichern",
+                              subtitle: "Geschlossene und geleerte Ablagen bleiben wiederherstellbar.", isOn: $history)
+            SettingsRow(symbol: "number", title: "Verlaufsgröße") {
+                menuPicker($historyLimit) { ForEach([10, 30, 50], id: \.self) { Text("\($0) Ablagen").tag($0) } }
+            }
+            .disabled(!history)
+        }
+        .onChange(of: historyLimit) { _ in HistoryStore.shared.trim() }
+    }
+}
+
+private struct FunPage: View {
     @AppStorage("funSoundEnabled") private var soundOn = false
     @AppStorage("funSoundPath") private var soundPath = ""
     @AppStorage("funImageEnabled") private var imageOn = false
     @AppStorage("funImagePath") private var imagePath = ""
 
     var body: some View {
-        SettingsCard {
-            SettingsRow(symbol: "circle.lefthalf.filled", title: "Glas-Intensität") { sliderControl($glass, "klar", "dunkel") }
-            if GlassKit.liquid {
-                SettingsDivider()
-                SettingsToggleRow(symbol: "sparkles", title: "Liquid Glass mit Lichtbrechung",
-                            subtitle: "Der Inhalt hinter der Ablage wird am Rand wie durch dickes Glas verbogen.", isOn: $refraction)
-                SettingsDivider()
-                SettingsRow(symbol: "camera.filters", title: "Lichtbrechung am Rand") { sliderControl($strength, "leicht", "stark") }
-                    .disabled(!refraction)
-                SettingsDivider()
-                SettingsRow(symbol: "arrow.left.and.right", title: "Reichweite der Lichtbrechung") { sliderControl($reach, "schmal", "breit") }
-                    .disabled(!refraction)
-                SettingsDivider()
-                SettingsRow(symbol: "drop", title: "Klares Glas mit starker Lichtbrechung") {
-                    Button("Wie Canopy") { glass = 0.1; refraction = true; strength = 1; reach = 0.7 }.controlSize(.small)
-                }
-            }
-            SettingsDivider()
-            SettingsToggleRow(symbol: "wand.and.stars", title: "Animationen",
-                        subtitle: "„Bewegung reduzieren“ in den Systemeinstellungen wird zusätzlich beachtet (nur Einblenden).", isOn: $anim)
-        }
-        Text("Spaß").font(.system(size: 13, weight: .semibold)).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 6).padding(.top, 4)
-        SettingsCard {
+        SettingsGroup(title: "Sound") {
             SettingsToggleRow(symbol: "speaker.wave.2", title: "Sound beim Aufploppen", isOn: $soundOn)
-            SettingsDivider()
-            fileRow(soundPath, "Kein Sound gewählt") {
+            fileRow("Sound", soundPath, "Kein Sound gewählt") {
                 Button("Wählen…") { FunEffects.pick(.audio, prefix: "sound", key: "funSoundPath") }
                 Button("Vorhören") { FunEffects.playSound() }.disabled(soundPath.isEmpty)
                 Button("Entfernen") { FunEffects.remove(prefix: "sound", key: "funSoundPath") }.disabled(soundPath.isEmpty)
             }
-            SettingsDivider()
-            SettingsToggleRow(symbol: "photo", title: "Bild beim Aufploppen einblenden",
-                        subtitle: "Vorsicht bei Lichtempfindlichkeit.", isOn: $imageOn)
-            SettingsDivider()
-            fileRow(imagePath, "Kein Bild gewählt") {
+        }
+        SettingsGroup(title: "Bild", footer: "Vorsicht bei Lichtempfindlichkeit.") {
+            SettingsToggleRow(symbol: "photo", title: "Bild beim Aufploppen einblenden", isOn: $imageOn)
+            fileRow("Bild", imagePath, "Kein Bild gewählt") {
                 Button("Wählen…") { FunEffects.pick(.image, prefix: "image", key: "funImagePath") }
                 Button("Vorschau") { FunEffects.flash(on: NSScreen.main) }.disabled(imagePath.isEmpty)
                 Button("Entfernen") { FunEffects.remove(prefix: "image", key: "funImagePath") }.disabled(imagePath.isEmpty)
@@ -404,14 +542,16 @@ private struct AppearancePage: View {
         }
     }
 
-    private func fileRow<B: View>(_ path: String, _ empty: String, @ViewBuilder buttons: () -> B) -> some View {
-        HStack(spacing: 6) {
+    private func fileRow<B: View>(_ title: String, _ path: String, _ empty: String, @ViewBuilder buttons: () -> B) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
             Text(path.isEmpty ? empty : (path as NSString).lastPathComponent)
-                .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-            Spacer(minLength: 8)
-            buttons().controlSize(.small)
+                .font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+            HStack(spacing: 8) { buttons().controlSize(.regular) }
         }
-        .padding(.horizontal, 12).padding(.vertical, 8).padding(.leading, 32)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16).padding(.vertical, 10)
+        .overlay(alignment: .bottom) { Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 1).padding(.leading, 16) }
+        .searchTitle(title)
     }
 }
 
@@ -421,16 +561,20 @@ private struct ActionsPage: View {
 
     var body: some View {
         let full = prefs.enabled.count >= ActionPrefs.maxActive
-        SettingsCard {
+        SettingsGroup(title: "Knöpfe unter der Ablage",
+                      footer: full ? "Es sind höchstens \(ActionPrefs.maxActive) Aktionen gleichzeitig möglich – erst eine ausschalten."
+                                   : "Reihenfolge per Ziehen ändern. Änderungen wirken sofort.",
+                      footerColor: full ? .orange : .secondary) {
             List {
                 ForEach(prefs.ordered) { a in
                     let on = prefs.enabled.contains(a)
                     Toggle(isOn: Binding(get: { on }, set: { set(a, $0) })) {
-                        Label { Text(a.title) } icon: { Image.symbol(a.symbol) }
+                        Label { Text(a.title) } icon: { Image.symbol(a.symbol) }.font(.system(size: 15))
                     }
-                    .toggleStyle(.switch)
+                    .toggleStyle(.switch).controlSize(.large)
                     .disabled(!on && full)
-                    .padding(.vertical, 3)
+                    .padding(.vertical, 4)
+                    .listRowBackground(Color.clear)
                 }
                 .onMove { from, to in
                     var all = prefs.ordered
@@ -439,11 +583,8 @@ private struct ActionsPage: View {
                 }
             }
             .listStyle(.plain).scrollContentBackground(.hidden).scrollDisabled(true)
-            .frame(height: CGFloat(prefs.ordered.count) * 36 + 12)
+            .frame(height: CGFloat(prefs.ordered.count) * 46 + 12)
         }
-        footnote(full ? "Es sind höchstens \(ActionPrefs.maxActive) Aktionen gleichzeitig möglich – erst eine ausschalten."
-                      : "Reihenfolge per Ziehen ändern. Änderungen wirken sofort.")
-            .foregroundStyle(full ? .orange : .secondary)
     }
 
     private func set(_ a: ShelfAction, _ on: Bool) {
@@ -526,6 +667,7 @@ struct ShortcutRecorder: View {
     }
 }
 
+
 private enum PermState {
     case granted, denied, notNeeded
     var color: Color { self == .granted ? .green : self == .denied ? .gray : .orange }
@@ -541,16 +683,13 @@ private struct PermissionsPage: View {
     @State private var confirm = false
 
     var body: some View {
-        SettingsCard {
+        SettingsGroup(title: "Systemrechte") {
             row("Bedienungshilfen", "Nötig, damit DropShelf das Schütteln beim Ziehen einer Datei bemerkt. DropShelf liest dabei nur die Mausbewegung, keine Tasten oder Inhalte.", ax, "Privacy_Accessibility")
-            SettingsDivider()
             row("Eingabeüberwachung", "Maus-Gesten global verfolgen (nur falls macOS danach fragt).", input, "Privacy_ListenEvent")
-            SettingsDivider()
             row("Mitteilungen", "Wird aktuell nicht benötigt.", notif, "Notifications")
-            SettingsDivider()
             row("Anmeldeobjekt", "Start beim Anmelden: \(loginText(login)).", login == .enabled ? .granted : .denied, "LoginItems")
         }
-        SettingsCard {
+        SettingsGroup(title: "Dateizugriff") {
             SettingsRow(symbol: "folder", title: "Ordner-/Dateizugriff",
                         subtitle: "\(bookmarks) gespeicherte Zugriffe (Lesezeichen) für Dateien in Ablagen.") {
                 Button("Zurücksetzen…") { confirm = true }.disabled(bookmarks == 0)
@@ -569,24 +708,19 @@ private struct PermissionsPage: View {
     }
 
     private func row(_ title: String, _ hint: String, _ state: PermState, _ pane: String) -> some View {
-        HStack(spacing: 10) {
-            Circle().fill(state.color).frame(width: 10, height: 10).frame(width: 22)
-            VStack(alignment: .leading, spacing: 1) {
-                Text("\(title) – \(state.text)").font(.system(size: 13))
-                Text(hint).font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 8)
-            if pane == "Privacy_Accessibility", state != .granted {
-                Button("Erlauben…") { ShakeDetector.requestAccessibility() }
-            }
-            Button("Öffnen…") {
-                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(pane)") ?? nil,
-                   !NSWorkspace.shared.open(url) {
-                    NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:")!)
+        SettingsRow(dot: state.color, title: "\(title) – \(state.text)", subtitle: hint) {
+            HStack(spacing: 8) {
+                if pane == "Privacy_Accessibility", state != .granted {
+                    Button("Erlauben…") { ShakeDetector.requestAccessibility() }
+                }
+                Button("Öffnen…") {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(pane)") ?? nil,
+                       !NSWorkspace.shared.open(url) {
+                        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:")!)
+                    }
                 }
             }
         }
-        .padding(.horizontal, 12).padding(.vertical, 9)
     }
 
     private func refresh() async {
@@ -601,9 +735,8 @@ private struct PermissionsPage: View {
 
 private struct AboutPage: View {
     var body: some View {
-        SettingsCard {
+        SettingsGroup(title: "DropShelf") {
             SettingsRow(symbol: "info.circle", title: "DropShelf", subtitle: "Version \(appVersion)") { EmptyView() }
-            SettingsDivider()
             SettingsRow(symbol: "link", title: "Projektseite") {
                 Link("github.com/Horn2208/DropShelf", destination: URL(string: "https://github.com/Horn2208/DropShelf")!)
             }
