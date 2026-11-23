@@ -1,6 +1,51 @@
 import AppKit
 import UniformTypeIdentifiers
 
+/// Lädt JSON-Listen, ohne wegen einzelner kaputter Einträge Daten zu verlieren.
+enum PersistedList {
+    /// Ersatz für ein fehlendes Datum: alt genug, um beim Kürzen keine datierten Einträge zu verdrängen.
+    static let unknownDate = Date(timeIntervalSince1970: 0)
+
+    private struct Slot<T: Decodable>: Decodable {
+        let value: T?
+        init(from decoder: Decoder) { value = try? T(from: decoder) }
+    }
+
+    /// Dekodiert pro Element; nil = gar kein JSON-Array, `complete` = kein Eintrag verworfen.
+    static func decode<T: Decodable>(_ data: Data) -> (items: [T], complete: Bool)? {
+        guard let slots = try? JSONDecoder().decode([Slot<T>?].self, from: data) else { return nil }
+        let items = slots.compactMap { $0?.value }
+        return (items, items.count == slots.count)
+    }
+
+    /// Fehlende Datei = leere Liste. Lesefehler oder fehlgeschlagene Sicherung: `writable` false, Datei nicht überschreiben.
+    /// Unlesbarer Inhalt oder verworfene Einträge: Originalbytes landen vorher in `<datei>.corrupt[.n]`.
+    /// `keepBackup: false` (Zwischenablage, kann Passwörter enthalten): nie eine Kopie; kein JSON-Array = nicht überschreiben.
+    static func load<T: Decodable>(_ url: URL, keepBackup: Bool = true) -> (items: [T], writable: Bool) {
+        let data: Data
+        do { data = try Data(contentsOf: url) }
+        catch CocoaError.fileReadNoSuchFile { return ([], true) }
+        catch { return ([], false) }
+        let decoded: (items: [T], complete: Bool)? = decode(data)
+        if let decoded, decoded.complete { return (decoded.items, true) }
+        guard keepBackup else { return (decoded?.items ?? [], decoded != nil) }
+        return (decoded?.items ?? [], backup(data, of: url))
+    }
+
+    static func hasBackup(of url: URL) -> Bool { FileManager.default.fileExists(atPath: url.path + ".corrupt") }
+
+    private static func backup(_ data: Data, of url: URL) -> Bool {
+        for n in 0..<1000 {
+            let target = URL(fileURLWithPath: url.path + ".corrupt" + (n == 0 ? "" : ".\(n)"))
+            if (try? Data(contentsOf: target)) == data { return true }  // dieselben Bytes sind schon gesichert
+            do { try data.write(to: target, options: .withoutOverwriting); return true }
+            catch CocoaError.fileWriteFileExists { continue }
+            catch { return false }
+        }
+        return false
+    }
+}
+
 /// Speicherformat einer offenen Ablage.
 struct ShelfRecord: Codable, Equatable {
     var id: UUID
@@ -8,13 +53,23 @@ struct ShelfRecord: Codable, Equatable {
     var bookmarks: [Data]
 
     static func encode(_ records: [ShelfRecord]) throws -> Data { try JSONEncoder().encode(records) }
-    static func decode(_ data: Data) -> [ShelfRecord] { (try? JSONDecoder().decode([ShelfRecord].self, from: data)) ?? [] }
+    static func decode(_ data: Data) -> [ShelfRecord] { PersistedList.decode(data)?.items ?? [] }
 
     /// Einfacher Self-Check (nur Debug, beim Start).
     static func selfCheck() {
         let r = ShelfRecord(id: UUID(), origin: CGPoint(x: 10, y: 20), bookmarks: [Data([1, 2, 3])])
         assert((try? decode(encode([r]))) == [r], "ShelfRecord roundtrip")
         assert(decode(Data("kaputt".utf8)).isEmpty, "ShelfRecord decode garbage")
+    }
+}
+
+extension ShelfRecord {
+    /// Altes Schema: `id` und `origin` haben Ersatzwerte, `bookmarks` sind der Inhalt und bleiben Pflicht.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        origin = try c.decodeIfPresent(CGPoint.self, forKey: .origin) ?? .zero
+        bookmarks = try c.decode([Data].self, forKey: .bookmarks)
     }
 }
 
@@ -218,6 +273,7 @@ final class ShelfManager {
     static let shared = ShelfManager()
     private var panels: [UUID: ShelfPanel] = [:]
     var lastActive: UUID?  // zuletzt angeklickt/geändert/geöffnet
+    private var canSave = false  // erst nach vollständigem restore(); bleibt false bei unlesbarer Datei
     private let file: URL = {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("DropShelf")
@@ -226,12 +282,16 @@ final class ShelfManager {
     }()
 
     func restore() {
-        let records = (try? Data(contentsOf: file)).map(ShelfRecord.decode) ?? []
+        let (records, writable): ([ShelfRecord], Bool) = PersistedList.load(file)
         for r in records {
             let onScreen = NSScreen.screens.contains { $0.frame.contains(r.origin) }
             open(Shelf(id: r.id, bookmarks: r.bookmarks), origin: onScreen ? r.origin : nil)
         }
-        Shelf.cleanCache(keeping: panels.values.flatMap { $0.shelf.items.map(\.url) } + HistoryStore.shared.entries.flatMap(\.urls))
+        canSave = writable
+        // ponytail: solange eine Sicherung existiert, bleibt der Cache ungeputzt (sie kann auf Cache-Dateien zeigen).
+        if writable, !PersistedList.hasBackup(of: file), HistoryStore.shared.cacheIsSafeToClean {
+            Shelf.cleanCache(keeping: panels.values.flatMap { $0.shelf.items.map(\.url) } + HistoryStore.shared.entries.flatMap(\.urls))
+        }
         save()  // schreibt aufgeräumte Liste zurück (veraltete/fehlende Einträge)
     }
 
@@ -303,6 +363,7 @@ final class ShelfManager {
     func purgeOrphans() { panels.values.forEach { $0.shelf.purgeOrphans() } }
 
     func save() {
+        guard canSave else { return }
         let records = panels.values.map {
             ShelfRecord(id: $0.shelf.id, origin: $0.frame.origin, bookmarks: $0.shelf.items.compactMap(\.bookmark))
         }

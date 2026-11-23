@@ -25,11 +25,15 @@ final class HistoryStore: ObservableObject {
     static var enabled: Bool { UserDefaults.standard.object(forKey: "historyEnabled") as? Bool ?? true }
     static var limit: Int { UserDefaults.standard.object(forKey: "historyLimit") as? Int ?? 30 }
 
+    private var canSave = true  // false: Datei war unlesbar, nicht überschreiben
+    var cacheIsSafeToClean: Bool { canSave && !PersistedList.hasBackup(of: file) }
+
     private init() { load() }
 
     /// Lädt, löst Bookmarks auf und entfernt nicht mehr auflösbare Dateien bzw. leere Einträge.
     private func load() {
-        let records = (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode([Record].self, from: $0) } ?? []
+        let (records, writable): ([Record], Bool) = PersistedList.load(file)
+        canSave = writable
         for r in records {
             var urls: [URL] = [], marks: [Data] = []
             for data in r.bookmarks {
@@ -82,7 +86,18 @@ final class HistoryStore: ObservableObject {
     }
 
     private func save() {
+        guard canSave else { return }
         let records = entries.map { Record(id: $0.id, date: $0.date, bookmarks: $0.bookmarks) }
         if let data = try? JSONEncoder().encode(records) { try? data.write(to: file, options: .atomic) }
+    }
+}
+
+extension HistoryStore.Record {
+    /// Altes Schema: `id` und `date` haben Ersatzwerte, `bookmarks` sind der Inhalt und bleiben Pflicht.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        date = try c.decodeIfPresent(Date.self, forKey: .date) ?? PersistedList.unknownDate
+        bookmarks = try c.decode([Data].self, forKey: .bookmarks)
     }
 }

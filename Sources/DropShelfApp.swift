@@ -29,6 +29,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
         debugLaunchArgs()
         #endif
+        launched = true
+        if !pendingOpen.isEmpty { addToShelf(pendingOpen); pendingOpen = [] }
+    }
+
+    private var launched = false
+    private var pendingOpen: [URL] = []  // Kaltstart: `open` kann vor restore() eintreffen; erst danach einsortieren
+
+    /// Dateien von außen (Finder-Menü, `open -b`): in die aktive Ablage, sonst in eine neue.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        let files = urls.filter(\.isFileURL)
+        if launched { addToShelf(files) } else { pendingOpen += files }
+    }
+
+    private func addToShelf(_ files: [URL]) {
+        guard !files.isEmpty else { return }
+        if ShelfManager.shared.activeShelf == nil { ShelfManager.shared.newShelf() }
+        files.forEach { ShelfManager.shared.activeShelf?.add($0) }
     }
 
     #if DEBUG

@@ -526,7 +526,16 @@ private struct ClipboardPage: View {
         SettingsGroup(title: "Zwischenablage-Verlauf",
                       footer: "⌃V öffnet den Verlauf an der Maus (Kürzel änderbar unter „Kürzel“). Achtung: In manchen Textfeldern bedeutet ⌃V „Seite runter“ (Emacs-Tastenbelegung). Mit Bedienungshilfen fügt ⏎ direkt in die vorige App ein, sonst wird nur kopiert.") {
             SettingsToggleRow(symbol: "doc.on.clipboard", title: "Verlauf aufzeichnen",
-                              subtitle: "Merkt sich Text, Links, Bilder und Dateien. Passwörter von Passwortmanagern werden ignoriert.", isOn: $on)
+                              subtitle: "Merkt sich Text, Links, Bilder und Dateien. Nicht angepinnter Text wird nach 24 Stunden gelöscht. Passwörter werden nur übersprungen, wenn die Quell-App sie als vertraulich markiert oder ausgeschlossen ist. Aus Notizen oder Browser-Erweiterungen können sie im Verlauf landen: Pausiere die Aufzeichnung vorher.", isOn: $on)
+            SettingsRow(symbol: store.pausedUntil == nil ? "pause.circle" : "play.circle",
+                        title: store.pausedUntil == nil ? "5 Minuten pausieren" : "Aufzeichnung pausiert",
+                        subtitle: store.pausedUntil.map { "Läuft um \($0.formatted(date: .omitted, time: .shortened)) automatisch weiter." }
+                            ?? "Was du währenddessen kopierst, wird nicht gespeichert.") {
+                Button(store.pausedUntil == nil ? "Pausieren" : "Fortsetzen") {
+                    if store.pausedUntil == nil { store.pause() } else { store.endPause() }
+                }
+            }
+            .disabled(!on)
             SettingsRow(symbol: "number", title: "Limit") {
                 menuPicker($limit) { ForEach([50, 100, 200, 500], id: \.self) { Text("\($0) Einträge").tag($0) } }
             }
@@ -543,7 +552,7 @@ private struct ClipboardPage: View {
         }
         SettingsGroup {
             SettingsRow(symbol: "trash", title: "Verlauf löschen", subtitle: "\(store.entries.count) Einträge, davon \(store.entries.filter(\.pinned).count) angepinnt") {
-                Button("Löschen…", action: clear).disabled(store.entries.isEmpty)
+                Button("Löschen…", action: clear).disabled(store.entries.isEmpty && !store.unreadable)
             }
         }
         .onChange(of: on) { _ in ClipboardStore.shared.sync() }
@@ -564,7 +573,9 @@ private struct ClipboardPage: View {
     private func clear() {
         let a = NSAlert()
         a.messageText = "Zwischenablage-Verlauf löschen?"
-        a.informativeText = "Angepinnte Einträge bleiben erhalten, wenn du „Ohne Angepinnte“ wählst."
+        a.informativeText = store.unreadable
+            ? "Der gespeicherte Verlauf ist nicht lesbar und wird in beiden Fällen vollständig gelöscht, auch angepinnte Einträge darin."
+            : "Angepinnte Einträge bleiben erhalten, wenn du „Ohne Angepinnte“ wählst."
         a.addButton(withTitle: "Ohne Angepinnte").hasDestructiveAction = true
         a.addButton(withTitle: "Alles löschen").hasDestructiveAction = true
         a.addButton(withTitle: "Abbrechen")

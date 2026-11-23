@@ -27,6 +27,7 @@ final class ClipboardPanel: NSPanel {
 
     static func toggle() {
         if let current { current.closeAnimated(); return }
+        ClipboardStore.shared.expire()
         let p = ClipboardPanel(at: NSEvent.mouseLocation, previous: NSWorkspace.shared.frontmostApplication)
         current = p
         p.show()
@@ -262,6 +263,11 @@ private struct ClipRow: View {
                     .frame(width: 22, height: 22).contentShape(Rectangle())
             }
             .buttonStyle(.plain).opacity(hover || entry.pinned ? 1 : 0).help(entry.pinned ? "Lösen" : "Anpinnen")
+            Button { store.remove(entry.id) } label: {
+                Image(systemName: "trash").font(.system(size: 12)).foregroundStyle(.secondary)
+                    .frame(width: 22, height: 22).contentShape(Rectangle())
+            }
+            .buttonStyle(.plain).opacity(hover || selected ? 1 : 0).help("Eintrag löschen").accessibilityLabel("Eintrag löschen")
             if index < 9 { Text("⌘\(index + 1)").font(.system(size: 11)).monospacedDigit().foregroundStyle(.tertiary) }
         }
         .padding(.horizontal, 10).frame(height: 52)
