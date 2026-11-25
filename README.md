@@ -1,46 +1,68 @@
-# DropShelf
+<p align="center">
+  <img src="Resources/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width="128" alt="DropShelf icon">
+</p>
 
-DropShelf ist eine kleine macOS-Menüleisten-App: eine schwebende Ablage, auf der du Dateien, Bilder, Text und Links kurz zwischenlagerst, um sie von dort aus woanders wieder abzulegen oder zu verschicken.
+<h1 align="center">DropShelf</h1>
 
-## Funktionen
+<p align="center">A floating shelf for macOS to temporarily park files, images, text and links.</p>
 
-- **Schwebende Ablage** im Glas-Look, auf allen Spaces sichtbar, frei verschiebbar
-- **Hineinziehen und Herausziehen** von Dateien, Bildern, Text und URLs (einzeln oder als Stapel, mit Wahltaste kopieren)
-- **Senden**: AirDrop, Nachrichten, Mail und Teilen…
-- **Aktionen**: Quick Look (Leertaste), als ZIP komprimieren, im Finder zeigen, Pfade kopieren
-- **Verlauf** früherer Ablagen
-- **Schütteln zum Öffnen**: Maus beim Ziehen einer Datei schütteln, dann öffnet sich eine Ablage an der Mausposition
-- **Einstellungen**: automatisches Schließen, Rückfrage „Ablage leeren?“ nach AirDrop, Glas-Intensität, Animationen („Bewegung reduzieren“ wird beachtet), Start bei der Anmeldung
+DropShelf is a small macOS menu bar app. Drop things onto a floating shelf, then drag them out again somewhere else or send them off.
 
-## Tastenkürzel
+## Features
 
-| Aktion | Standard | 
+- **Floating shelf** with a glass look, visible on all Spaces, freely movable
+- **Drag in and out** of files, images, text and URLs, singly or as a stack (hold Option to copy)
+- **Send** via AirDrop, Messages, Mail and Share…
+- **Actions**: Quick Look (Space), compress as ZIP, reveal in Finder, copy paths
+- **History** of previous shelves
+- **Shake to open**: shake the mouse while dragging a file and a shelf opens at the pointer
+- **Settings**: auto-close, "Clear shelf?" prompt after AirDrop, glass intensity, animations (respects "Reduce motion"), launch at login
+
+## Keyboard shortcuts
+
+| Action | Default |
 |---|---|
-| Neue Ablage an der Maus | ⌃⌥Space |
-| Aktive Ablage per AirDrop senden | ⌃⌥A |
-| Verlauf öffnen | ⌃⌥V |
+| New shelf at the mouse | ⌃⌥Space |
+| Send the active shelf via AirDrop | ⌃⌥A |
+| Open history | ⌃⌥V |
 
-Alle Kürzel lassen sich unter Einstellungen › Kürzel neu aufnehmen (mindestens ⌃, ⌥ oder ⌘) oder abschalten.
+Shortcuts can be re-recorded under Settings › Shortcuts (they need at least ⌃, ⌥ or ⌘) or turned off.
 
-## Voraussetzungen
+## Requirements
 
-- macOS 13 oder neuer
-- Xcode (Swift 6) und [XcodeGen](https://github.com/yonaskolb/XcodeGen) zum Bauen
+- macOS 14 or later
+- To build from source: Xcode (Swift 6) and [XcodeGen](https://github.com/yonaskolb/XcodeGen)
 
-## Bauen
+## Install
+
+Download the DMG from the [Releases](https://github.com/Horn2208/DropShelf/releases) page and drag DropShelf to `/Applications`. The app is not notarized, so on first launch right-click it and choose Open, or allow it under System Settings › Privacy & Security.
+
+## Updates
+
+The app will be able to notify you about new releases (coming soon).
+
+## Build from source
 
 ```sh
 xcodegen
 xcodebuild -project DropShelf.xcodeproj -scheme DropShelf -configuration Release -derivedDataPath build build
 ```
 
-Die App liegt danach in `build/Build/Products/Release/DropShelf.app`. Für zuverlässigen Start bei der Anmeldung die App nach `/Applications` kopieren. Das Symbol lässt sich mit `swift scripts/make-icon.swift` neu erzeugen.
+The app ends up in `build/Build/Products/Release/DropShelf.app`. For launch at login to work reliably, copy it to `/Applications`. The icon can be regenerated with `swift scripts/make-icon.swift`.
 
-## Berechtigungen
+The "Troll" build variants use a bundled sound and image that are not included in this repository, so those targets do not build from a clone.
 
-- **Bedienungshilfen**: nur für die Schüttel-Erkennung (liest ausschließlich die Mausbewegung). Ohne sie funktioniert alles andere.
-- Tastenkürzel brauchen keine Berechtigung.
+## Permissions
+
+- **Accessibility**: only for shake detection (it reads mouse movement only). Everything else works without it.
+- Keyboard shortcuts need no permission.
 
 ## Sandbox
 
-DropShelf läuft in der App-Sandbox. Dateizugriff erfolgt über vom Nutzer abgelegte Dateien und Security-Scoped Bookmarks, damit Ablagen nach einem Neustart erhalten bleiben. Es gibt keine Netzwerkzugriffe und keine Fremdbibliotheken.
+DropShelf runs in the App Sandbox. File access goes through files the user dropped and security-scoped bookmarks, so shelves survive a restart. There is no network access and there are no third-party libraries.
+
+## License
+
+Source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE). Free for personal and other noncommercial use. Commercial use is not permitted.
+
+© 2026 Lennet Schierhorn (Horn2208)
