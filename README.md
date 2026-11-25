@@ -30,8 +30,18 @@ Shortcuts can be re-recorded under Settings ‚Ä∫ Shortcuts (they need at least ‚å
 
 ## Requirements
 
-- macOS 14 or later
+- macOS 13 or later
 - To build from source: Xcode (Swift 6) and [XcodeGen](https://github.com/yonaskolb/XcodeGen)
+
+## Privacy & security
+
+- The clipboard history is on by default. It is stored locally in the app's sandbox container, at `~/Library/Containers/com.horn2208.DropShelf/Data/Library/Application Support/DropShelf/clipboard/`.
+- Unpinned text expires after 24 hours.
+- Entries that password managers mark as concealed or transient are skipped, and copies from the Passwords app and Keychain Access are always ignored. Passwords copied from sources that don't mark them, such as notes or some browser extensions, may still be recorded. Use "Pause 5 minutes" in Settings in that case.
+- The history is excluded from backups and can be cleared in Settings.
+- The Accessibility permission is optional. It is only needed for pasting directly into the previous app when you pick a history entry, and for shake-to-open. Without it, picking an entry just copies it.
+- The app makes no network requests.
+- The DMG is ad-hoc signed and not notarized. Build from source if you prefer.
 
 ## Install
 
