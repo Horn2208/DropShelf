@@ -18,8 +18,15 @@ if [ ! -d "$APP" ]; then
   exit 1
 fi
 
+# Python mit den Paketen ds_store und mac_alias (z. B. venv: pip install ds_store)
+DS_PY="${DS_STORE_PYTHON:-python3}"
+if ! "$DS_PY" -c 'import ds_store, mac_alias' 2>/dev/null; then
+  echo "error: $DS_PY lacks ds_store/mac_alias; set DS_STORE_PYTHON to a python with 'pip install ds_store'" >&2
+  exit 1
+fi
+
 STAGING="$(mktemp -d "${TMPDIR:-/tmp}/make-dmg.XXXXXX")"
-trap 'rm -rf "$STAGING"' EXIT
+trap 'rm -rf "$STAGING" "$STAGING.py"' EXIT
 
 if [ -n "${DEVELOPER_ID:-}" ]; then
   # Hardened Runtime + Zeitstempel; Entitlements der App bleiben erhalten.
@@ -41,36 +48,57 @@ mkdir -p "$STAGING/.background"
 cp "$ROOT/Resources/dmg/background.tiff" "$STAGING/.background/background.tiff"
 RW="$STAGING.rw.dmg"
 hdiutil create -volname "$VOLNAME" -srcfolder "$STAGING" -ov -format UDRW "$RW"
-MNT="$(hdiutil attach "$RW" -readwrite -noverify -noautoopen | awk -F'\t' '/\/Volumes\//{print $NF}' | tail -1)"
-osascript <<OSA
-tell application "Finder"
-  tell disk "$VOLNAME"
-    open
-    set current view of container window to icon view
-    set toolbar visible of container window to false
-    set statusbar visible of container window to false
-    set bounds of container window to {200, 120, 740, 500}
-    set opts to icon view options of container window
-    set arrangement of opts to not arranged
-    set icon size of opts to 96
-    set background picture of opts to file ".background:background.tiff"
-    set position of item "$(basename "$APP")" of container window to {140, 170}
-    set position of item "Applications" of container window to {400, 170}
-    set position of item "THIRD-PARTY-LICENSES.md" of container window to {700, 170}
-    set position of item "LICENSE" of container window to {700, 270}
-    close
-    open
-    update without registering applications
-    delay 2
-    close
-  end tell
-end tell
-OSA
+# Layout direkt in die .DS_Store schreiben (wie dmgbuild): Finder per AppleScript speichert unter
+# aktuellem macOS die Darstellungsoptionen (Hintergrund, Icon-Größe) nicht mehr zuverlässig.
+# -nobrowse hält Finder vom Volume fern, damit er die Datei nicht überschreibt.
+cat > "$STAGING.py" <<'PY'
+import sys
+from ds_store import DSStore
+from mac_alias import Alias, Bookmark
+mnt, app, mode = sys.argv[1:]
+bg = mnt + "/.background/background.tiff"
+pos = {app: (140, 170), "Applications": (400, 170), "THIRD-PARTY-LICENSES.md": (700, 170), "LICENSE": (700, 270)}
+bounds = "{{200, 120}, {540, 380}}"
+if mode == "write":
+    with DSStore.open(mnt + "/.DS_Store", "w+") as d:
+        d["."]["bwsp"] = {"WindowBounds": bounds, "ShowStatusBar": False, "ShowToolbar": False, "ShowPathbar": False,
+                          "ShowSidebar": False, "ContainerShowSidebar": False, "ShowTabView": False}
+        d["."]["icvp"] = {"viewOptionsVersion": 1, "backgroundType": 2, "backgroundImageAlias": Alias.for_file(bg).to_bytes(),
+                          "arrangeBy": "none", "iconSize": 96.0, "textSize": 12.0, "labelOnBottom": True,
+                          "gridSpacing": 100.0, "gridOffsetX": 0.0, "gridOffsetY": 0.0, "showItemInfo": False,
+                          "showIconPreview": True, "scrollPositionX": 0.0, "scrollPositionY": 0.0,
+                          "backgroundColorRed": 1.0, "backgroundColorGreen": 1.0, "backgroundColorBlue": 1.0}
+        d["."]["pBBk"] = Bookmark.for_file(bg)
+        d["."]["vSrn"] = ("long", 1)
+        d["."]["vstl"] = ("type", b"icnv")
+        for name, p in pos.items():
+            d[name]["Iloc"] = p
+else:  # check: Layout muss vollständig in der fertigen DMG stehen
+    with DSStore.open(mnt + "/.DS_Store", "r") as d:
+        def get(name, code):
+            try: return d[name][code]
+            except KeyError: return None
+        icvp, alias = get(".", "icvp") or {}, None
+        if icvp.get("backgroundImageAlias"): alias = Alias.from_bytes(icvp["backgroundImageAlias"]).target.filename
+        errors = []
+        if (get(".", "bwsp") or {}).get("WindowBounds") != bounds: errors.append("window bounds")
+        if icvp.get("backgroundType") != 2 or alias != "background.tiff": errors.append("background")
+        if icvp.get("iconSize") != 96.0: errors.append("icon size")
+        errors += ["position " + n for n, p in pos.items() if get(n, "Iloc") != p]
+    if errors:
+        sys.exit("error: .DS_Store layout incomplete: " + ", ".join(errors))
+    print(".DS_Store layout ok")
+PY
+MNT="$(hdiutil attach "$RW" -readwrite -noverify -noautoopen -nobrowse | awk -F'\t' '/\/Volumes\//{print $NF}' | tail -1)"
+"$DS_PY" "$STAGING.py" "$MNT" "$(basename "$APP")" write
 sync
 hdiutil detach "$MNT"
 hdiutil convert "$RW" -format UDZO -o "$OUT"
 rm -f "$RW"
 hdiutil verify "$OUT"
+MNT="$(hdiutil attach "$OUT" -readonly -nobrowse -noverify -noautoopen | awk -F'\t' '/\/Volumes\//{print $NF}' | tail -1)"
+"$DS_PY" "$STAGING.py" "$MNT" "$(basename "$APP")" check || { hdiutil detach "$MNT"; exit 1; }
+hdiutil detach "$MNT"
 
 if [ -n "${DEVELOPER_ID:-}" ] && [ -n "${NOTARY_PROFILE:-}" ]; then
   codesign --force --timestamp --sign "$DEVELOPER_ID" "$OUT"
