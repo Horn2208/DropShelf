@@ -9,6 +9,7 @@ struct ShelfView: View {
     @AppStorage("glassIntensity") private var glass = 0.25
     @Environment(\.colorScheme) private var scheme
     @Namespace private var ns  // Vorschau „fliegt“ ins Raster der Detail-Ansicht
+    @ObservedObject private var jobs = ConvertJobs.shared  // Spinner am Stapel (eine Datei: an der Endung)
     static let animationDuration = 0.22
     static let radius: CGFloat = 26
     private var edge: Color { scheme == .dark ? .white.opacity(0.2) : .black.opacity(0.12) }
@@ -26,7 +27,7 @@ struct ShelfView: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: Self.radius, style: .continuous)
         ZStack {
-            WindowDragArea()
+            WindowDragArea { shelf.selection.clear() }  // unterste Ebene: überall, wo Glas ist, lässt sich das Fenster ziehen
             Group {
                 if detail {
                     // Feste Größen: Während das Fenster auf-/zuklappt, muss SwiftUI den Inhalt nicht jedes Bild neu
@@ -43,6 +44,7 @@ struct ShelfView: View {
                     .transition(smallSwap)
                 }
             }
+            .overlay(alignment: .bottom) { ConvertBanner(shelf: shelf) }
             .popScale(shown: shown, closing: shelf.closing)
             .scaleEffect(targeted && Motion.enabled ? 1.03 : 1)
         }
@@ -82,7 +84,7 @@ struct ShelfView: View {
                 GlassCircleButton(symbol: "chevron.down", help: "Details öffnen") { shelf.expanded = true }
             }
         }
-        .overlay { Capsule().fill(Color.primary.opacity(0.25)).frame(width: 36, height: 5).allowsHitTesting(false) }
+        .overlay { DragPill() }
         .padding(.horizontal, 12).padding(.top, 12).padding(.bottom, 4)
     }
 
@@ -118,29 +120,50 @@ struct ShelfView: View {
         .animation(Motion.pop, value: shelf.items.count)
         .frame(width: 120, height: 116)
         .overlay {
-            DragOut(urls: { shelf.items.map(\.url) }, onClick: { shelf.expanded = true }, onDragging: { shelf.setHover("dragout", $0) }, onMoved: { shelf.remove($0) })
+            DragOut(urls: { shelf.items.map(\.url) }, onClick: { shelf.expanded = true },
+                    convertItem: { shelf.items.count == 1 ? ConvertMenu.menuItem(for: shelf.items[0].url, shelf: shelf) : nil },
+                    editItem: { EditMenu.menuItem(for: shelf.items.map(\.url), shelf: shelf) },
+                    onDragging: { shelf.setHover("dragout", $0) }, onMoved: { shelf.remove($0) })
         }
     }
 
+    /// Eine Datei: Name und Endung als ein Text – Klick auf den Namen benennt um, die Endung öffnet „Umwandeln in …“, der Pfeil klappt auf.
+    /// Mehrere Dateien: „n Dateien“ klappt auf.
     private var nameCapsule: some View {
         let n = shelf.items.count
-        let label = n == 1 ? shelf.items[0].url.lastPathComponent : "\(n) Dateien"
-        return Button { shelf.expanded = true } label: {
-            HStack(spacing: 5) {
-                Text(label)
-                    .font(.system(size: 13, weight: .medium))
-                    .lineLimit(1).truncationMode(.middle)
-                    .contentTransition(.numericText())
-                Image(systemName: "chevron.right").font(.system(size: 9, weight: .bold)).bounceSymbol(n)
+        let url = n == 1 ? shelf.items[0].url : nil
+        let label = url.map { ConvertMenu.split($0.lastPathComponent).base } ?? "\(n) Dateien"
+        return HStack(spacing: 0) {
+            if let url {
+                NameField(url: url, shelf: shelf, size: 13)  // Name und Endung zusammenhängend
+                    .padding(.leading, 12)
+                    .frame(height: 26)
+            } else {
+                Button { shelf.expanded = true } label: {
+                    Text(label)
+                        .font(.system(size: 13, weight: .medium))
+                        .lineLimit(1).truncationMode(.middle)
+                        .contentTransition(.numericText())
+                        .padding(.leading, 12)
+                        .frame(height: 26).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                if shelf.items.contains(where: { jobs.busy.contains($0.url) }) {
+                    ProgressView().controlSize(.mini).padding(.leading, 5).help("Wird bearbeitet …")
+                }
             }
-            .foregroundStyle(Color.primary.opacity(0.9))
-            .legible()
-            .padding(.horizontal, 12).frame(height: 26)
-            .glassBG(Capsule(), line: 0.5)
-            .frame(maxWidth: 170)
-            .animation(Motion.smooth, value: label)
+            Button { shelf.expanded = true } label: {
+                Image(systemName: "chevron.right").font(.system(size: 9, weight: .bold)).bounceSymbol(n)
+                    .padding(.leading, 5).padding(.trailing, 12)
+                    .frame(height: 26).contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
+        .foregroundStyle(Color.primary.opacity(0.9))
+        .legible()
+        .glassBG(Capsule(), line: 0.5)
+        .frame(maxWidth: 170)
+        .animation(Motion.smooth, value: label)
     }
 }
 

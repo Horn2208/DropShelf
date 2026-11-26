@@ -4,17 +4,37 @@ import Quartz
 import SwiftUI
 
 /// Verschiebt das Fenster per `performDrag` (SwiftUI-Inhalt schluckt sonst die Ereignisse).
+/// `onPress`: läuft bei jedem Mausdruck auf dieser Fläche (z. B. Auswahl aufheben), ohne das Panel zum Schlüssel zu machen.
 struct WindowDragArea: NSViewRepresentable {
+    var onPress: (() -> Void)?
     func makeNSView(context: Context) -> WindowDragView { WindowDragView() }
-    func updateNSView(_ v: WindowDragView, context: Context) {}
+    func updateNSView(_ v: WindowDragView, context: Context) { v.onPress = onPress }
+}
+
+/// Griff oben: nur hier reagiert die Maus (Hover-Hervorhebung, Cursor, Ziehen). Der Rest der Ablage bleibt still.
+struct DragPill: View {
+    @State private var hover = false
+
+    var body: some View {
+        Capsule()
+            .fill(Color.primary.opacity(hover ? 0.45 : 0.25))
+            .frame(width: 36, height: 5)
+            .frame(width: 56, height: 16)
+            .contentShape(Rectangle())
+            .background(WindowDragArea())
+            .onHover { hover = $0 }
+            .animation(Motion.snappy, value: hover)
+    }
 }
 
 final class WindowDragView: NSView {
+    var onPress: (() -> Void)?
     override var mouseDownCanMoveWindow: Bool { false }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
     override func resetCursorRects() { addCursorRect(bounds, cursor: .openHand) }
 
     override func mouseDown(with event: NSEvent) {
+        onPress?()
         NSCursor.closedHand.set()
         window?.performDrag(with: event)
         (window as? ShelfPanel)?.clampToScreen()
@@ -32,6 +52,7 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
     private let actions: ActionsPanel
     private var expandSub: AnyCancellable?
     private var tintSub: AnyCancellable?
+    private var selectSub: AnyCancellable?
     private var resizing = false  // Auf-/Zuklapp-Animation läuft: Schatten/Glas erst am Ende nachziehen
     private var resizeGen = 0     // Umkehr mitten in der Animation: nur der letzte Abschluss zählt
 
@@ -41,8 +62,11 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
         super.init(contentRect: NSRect(origin: origin, size: CGSize(width: Self.width, height: Self.collapsedHeight)),
                    styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         level = .floating
-        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        isMovableByWindowBackground = true  // Rückfall; zuverlässig macht es WindowDragArea
+        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        isMovableByWindowBackground = true
+        // Klick/Ziehen macht das Panel nicht zum Schlüsselfenster: Jeder Schlüssel-Wechsel baut auf macOS 26 Glas und
+        // Schatten um (anderes Aussehen). Schlüssel wird es nur noch per `makeKey()` (Quick Look) oder für Textfelder.
+        becomesKeyOnlyIfNeeded = true
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
         isOpaque = false
@@ -66,8 +90,14 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
         addChildWindow(actions, ordered: .above)  // Kindfenster: bewegt sich beim Ziehen ohne Nachlauf mit
         DispatchQueue.main.async { self.invalidateShadow() }
 
+        // Auswahl ändert sich bei offener Vorschau → Quick Look zeigt die neue Auswahl (Sink läuft vor der Änderung).
+        selectSub = shelf.$selection.dropFirst().sink { [weak self] _ in
+            DispatchQueue.main.async { self?.reloadQuickLook() }
+        }
+
         expandSub = shelf.$expanded.dropFirst().sink { [weak self] open in
             guard let self else { return }
+            if !open { self.shelf.selection.clear() }
             let size = open ? Self.detailSize : CGSize(width: Self.width, height: Self.collapsedHeight)
             // Oberkante und waagrechte Mitte bleiben: wächst nur nach unten und gleichmäßig zu beiden Seiten.
             let old = self.frame
@@ -147,6 +177,17 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
     // Quick Look (Leertaste): Panel darf Taste werden, ohne die App zu aktivieren.
     override var canBecomeKey: Bool { true }
 
+    /// Panel zur Ablage zum Schlüsselfenster machen (Auswahl, Umbenennen) – nicht beim Verschieben über freies Glas.
+    static func focus(_ shelf: Shelf) {
+        NSApp.windows.first { ($0 as? ShelfPanel)?.shelf === shelf }?.makeKey()
+    }
+
+    /// Quick Look zeigt die markierten Dateien, ohne Auswahl alle.
+    private var previewURLs: [URL] {
+        let sel = shelf.items.filter { shelf.selection.ids.contains($0.id) }
+        return (sel.isEmpty ? shelf.items : sel).map(\.url)
+    }
+
     func toggleQuickLook() {
         guard let ql = QLPreviewPanel.shared() else { return }
         if QLPreviewPanel.sharedPreviewPanelExists() && ql.isVisible { ql.orderOut(nil); return }
@@ -155,9 +196,24 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
         ql.makeKeyAndOrderFront(nil)
     }
 
-    override func keyDown(with event: NSEvent) {
-        if event.keyCode == 49 { toggleQuickLook() } else { super.keyDown(with: event) }
+    private func reloadQuickLook() {
+        guard QLPreviewPanel.sharedPreviewPanelExists(), let ql = QLPreviewPanel.shared(), ql.isVisible, ql.dataSource === self else { return }
+        ql.reloadData()
     }
+
+    override func keyDown(with event: NSEvent) {
+        switch event.keyCode {
+        case 49: toggleQuickLook()                                   // Leertaste
+        case 53: shelf.selection.clear()                             // Esc
+        case 123, 126: if shelf.expanded { shelf.selection.step(-1) } // ← ↑
+        case 124, 125: if shelf.expanded { shelf.selection.step(1) }  // → ↓
+        default: super.keyDown(with: event)
+        }
+    }
+
+    // Vermutung: Beim Schlüssel-Wechsel legt macOS 26 neue Glas-Ebenen an; wie beim Verschieben die eigenen Werte nachziehen.
+    func windowDidBecomeKey(_ notification: Notification) { GlassKit.retintSoon(contentView) }
+    func windowDidResignKey(_ notification: Notification) { GlassKit.retintSoon(contentView) }
 
     override func acceptsPreviewPanelControl(_ panel: QLPreviewPanel!) -> Bool { true }
     override func beginPreviewPanelControl(_ panel: QLPreviewPanel!) { panel.dataSource = self; panel.delegate = self }
@@ -205,6 +261,9 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
         return img
     }()
 
-    func numberOfPreviewItems(in panel: QLPreviewPanel!) -> Int { shelf.items.count }
-    func previewPanel(_ panel: QLPreviewPanel!, previewItemAt index: Int) -> QLPreviewItem! { shelf.items[index].url as NSURL }
+    func numberOfPreviewItems(in panel: QLPreviewPanel!) -> Int { previewURLs.count }
+    func previewPanel(_ panel: QLPreviewPanel!, previewItemAt index: Int) -> QLPreviewItem! {
+        let urls = previewURLs
+        return urls.indices.contains(index) ? urls[index] as NSURL : nil
+    }
 }

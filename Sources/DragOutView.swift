@@ -8,13 +8,15 @@ struct DragOut: NSViewRepresentable {
     var onRemove: (() -> Void)?
     var onAirDrop: (() -> Void)?
     var onRestore: (() -> Void)?
+    var convertItem: (() -> NSMenuItem?)?
+    var editItem: (() -> NSMenuItem?)?
     var onDragging: ((Bool) -> Void)?
     var removeTitle = "Entfernen"
     let onMoved: ([URL]) -> Void
 
     func makeNSView(context: Context) -> DragOutView { DragOutView() }
     func updateNSView(_ v: DragOutView, context: Context) {
-        v.urls = urls; v.onClick = onClick; v.onRemove = onRemove; v.onAirDrop = onAirDrop; v.onRestore = onRestore; v.onDragging = onDragging; v.removeTitle = removeTitle; v.onMoved = onMoved
+        v.urls = urls; v.onClick = onClick; v.onRemove = onRemove; v.onAirDrop = onAirDrop; v.onRestore = onRestore; v.convertItem = convertItem; v.editItem = editItem; v.onDragging = onDragging; v.removeTitle = removeTitle; v.onMoved = onMoved
     }
 }
 
@@ -24,6 +26,8 @@ final class DragOutView: NSView, NSDraggingSource {
     var onRemove: (() -> Void)?
     var onAirDrop: (() -> Void)?
     var onRestore: (() -> Void)?
+    var convertItem: (() -> NSMenuItem?)?
+    var editItem: (() -> NSMenuItem?)?
     var onDragging: ((Bool) -> Void)?
     var removeTitle = "Entfernen"
     var onMoved: ([URL]) -> Void = { _ in }
@@ -61,15 +65,21 @@ final class DragOutView: NSView, NSDraggingSource {
     }
 
     override func menu(for event: NSEvent) -> NSMenu? {
-        guard onRemove != nil else { return nil }
         let m = NSMenu()
+        // Ohne onRemove (kleine Ablage): nur „Umwandeln in“ und „Bearbeiten“; passt nichts davon, kein Menü.
+        guard onRemove != nil else {
+            for case let i? in [convertItem?(), editItem?()] { m.addItem(i) }
+            return m.items.isEmpty ? nil : m
+        }
         if onRestore != nil { m.addItem(withTitle: "Wiederherstellen", action: #selector(restore), keyEquivalent: "").target = self }
         if onAirDrop != nil {
             let i = m.addItem(withTitle: "Per AirDrop senden", action: #selector(airDrop), keyEquivalent: "")
             i.target = self
             i.image = NSImage.privateSymbol("airdrop")
         }
+        if let i = convertItem?() { m.addItem(i) }
         m.addItem(withTitle: "Im Finder zeigen", action: #selector(reveal), keyEquivalent: "").target = self
+        if let i = editItem?() { m.addItem(i) }
         m.addItem(withTitle: removeTitle, action: #selector(remove), keyEquivalent: "").target = self
         return m
     }

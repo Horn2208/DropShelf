@@ -76,7 +76,7 @@ extension ShelfRecord {
 @MainActor
 final class Shelf: ObservableObject, Identifiable {
     struct Item: Identifiable {
-        let id = UUID()
+        var id = UUID()  // var: `replaceURLs` behält die ID über `Item(id:url:bookmark:)`
         let url: URL
         var bookmark: Data?
     }
@@ -84,6 +84,7 @@ final class Shelf: ObservableObject, Identifiable {
     let id: UUID
     @Published private(set) var items: [Item] = []
     @Published var expanded = false
+    @Published var selection = Selection()  // Finder-Auswahl in der Detail-Ansicht (nicht gespeichert)
     @Published var appeared = false  // Pop-Animation beim Öffnen
     @Published var closing = false
     @Published private(set) var hovering = false  // Maus über Ablage oder Aktionsleiste
@@ -167,6 +168,20 @@ final class Shelf: ObservableObject, Identifiable {
         items.append(Item(url: url, bookmark: Self.bookmark(url)))  // nil = nur für diese Sitzung
         idleArmed = false; idleTask?.cancel()
         onChange?()
+    }
+
+    /// Nach Umbenennen (alt → neu): Eintrag bleibt an seiner Stelle mit gleicher ID, bekommt neue URL und neues Lesezeichen.
+    /// Ein vergessenes Lesezeichen (nil, siehe `forgetBookmarks`) bleibt nil. Ein `onChange` für alle Änderungen.
+    func replaceURLs(_ map: [URL: URL]) {
+        let byPath = Dictionary(map.map { ($0.key.standardizedFileURL.path, $0.value) }, uniquingKeysWith: { a, _ in a })
+        var changed = false
+        for i in items.indices {
+            guard let new = byPath[items[i].url.standardizedFileURL.path] else { continue }
+            if new.startAccessingSecurityScopedResource() { scoped.append(new) }
+            items[i] = Item(id: items[i].id, url: new, bookmark: items[i].bookmark == nil ? nil : Self.bookmark(new))
+            changed = true
+        }
+        if changed { onChange?() }
     }
 
     func remove(_ urls: [URL]) {
@@ -357,6 +372,13 @@ final class ShelfManager {
     var bookmarkCount: Int { panels.values.reduce(0) { $0 + $1.shelf.bookmarkCount } }
 
     func resetBookmarks() { panels.values.forEach { $0.shelf.forgetBookmarks() }; save() }
+
+    /// Ziel für Ergebnisse aus eigenen Fenstern: `shelf`, solange sie offen ist, sonst die aktive, sonst eine neue.
+    func target(for shelf: Shelf) -> Shelf {
+        if panels[shelf.id] != nil { return shelf }
+        if activeShelf == nil { newShelf() }
+        return activeShelf ?? shelf
+    }
 
     var activeShelf: Shelf? { lastActive.flatMap { panels[$0]?.shelf } ?? panels.values.first?.shelf }
 

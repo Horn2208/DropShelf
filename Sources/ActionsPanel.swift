@@ -13,7 +13,7 @@ final class ActionsPanel: NSPanel {
         super.init(contentRect: NSRect(origin: .zero, size: Self.size),
                    styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         level = .floating
-        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
         isOpaque = false

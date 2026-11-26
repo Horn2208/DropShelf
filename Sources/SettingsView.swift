@@ -71,7 +71,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .shortcuts: "Tastenkürzel Hotkey Neue Ablage Zwischenablage AirDrop Verlauf"
         case .clipboard: "Verlauf kopiert Text Bilder Dateien Limit Ausgeschlossene Apps Löschen Passwort ⌃V"
         case .activation: "Schütteln Empfindlichkeit Modifikatortaste"
-        case .interactions: "Schließen leer AirDrop fragen Ansicht Raster Liste"
+        case .interactions: "Schließen leer AirDrop fragen Ansicht Raster Liste Umwandeln Ersetzen nachfragen"
         case .actions: "Knöpfe Quick Look ZIP Teilen Finder Pfade"
         case .history: "Verlauf speichern Größe"
         case .fun: "Sound Bild Aufploppen"
@@ -369,8 +369,33 @@ private struct GeneralPage: View {
     @AppStorage("openShelfOnLaunch") private var openOnLaunch = true
     @State private var login = SMAppService.mainApp.status
     @State private var error: String?
+    @AppStorage(UpdateManager.autoKey) private var autoUpdate = true
+    @ObservedObject private var updates = UpdateManager.shared
 
     var body: some View {
+        VStack(spacing: 20) { startGroup; updateGroup }
+    }
+
+    private var updateGroup: some View {
+        SettingsGroup(title: "Updates", footer: updates.downloadStatus ?? updates.message) {
+            SettingsToggleRow(symbol: "arrow.triangle.2.circlepath", title: "Automatisch nach Updates suchen",
+                              subtitle: "Prüft beim Start höchstens einmal täglich auf GitHub.", isOn: $autoUpdate)
+            SettingsRow(symbol: "arrow.down.circle", title: "Jetzt prüfen") {
+                HStack {
+                    if let r = updates.available { Button("Version \(r.version) öffnen") { updates.openRelease() } }
+                    if let p = updates.downloadProgress {
+                        ProgressView(value: p).frame(width: 80)
+                        Button("Abbrechen") { updates.cancelDownload() }
+                    } else if updates.available != nil {
+                        Button("Herunterladen und öffnen") { updates.downloadUpdate() }
+                    }
+                    Button("Jetzt prüfen") { updates.checkNow() }.disabled(updates.checking)
+                }
+            }
+        }
+    }
+
+    private var startGroup: some View {
         SettingsGroup(title: "Start", footer: error, footerColor: .red) {
             SettingsToggleRow(symbol: "power", title: "Beim Anmelden starten",
                               subtitle: "Status: \(loginText(login))",
@@ -495,8 +520,16 @@ private struct InteractionsPage: View {
     @AppStorage("autoCloseEmptySeconds") private var idleSecs = 5.0
     @AppStorage("askClearAfterAirDrop") private var askClear = true
     @AppStorage("viewMode") private var mode = "grid"
+    @AppStorage(ConvertPrefs.replaceKey) private var convertReplaces = true
+    @AppStorage(ConvertPrefs.askKey) private var convertAsk = true
 
     var body: some View {
+        SettingsGroup(title: "Umwandeln") {
+            SettingsToggleRow(symbol: "arrow.triangle.2.circlepath", title: "Beim Umwandeln die Datei in der Ablage ersetzen",
+                              subtitle: "Nur der Eintrag in der Ablage wird ausgetauscht, die Originaldatei bleibt unverändert. Aus: Die neue Datei kommt zusätzlich neben das Original und in die Ablage.", isOn: $convertReplaces)
+            SettingsToggleRow(symbol: "questionmark.bubble", title: "Vor dem Umwandeln nachfragen",
+                              subtitle: "Fragt jedes Mal, ob ersetzt oder als neue Datei hinzugefügt werden soll.", isOn: $convertAsk)
+        }
         SettingsGroup(title: "Verhalten") {
             SettingsToggleRow(symbol: "xmark.rectangle", title: "Ablage schließen, wenn sie leer ist",
                               subtitle: "Nach dem Herausziehen der letzten Datei schließt sich das Fenster.", isOn: $autoClose)

@@ -33,6 +33,41 @@ enum FileInfo {
     }
 }
 
+/// Auswahl wie im Finder: Klick = nur diese, Cmd = umschalten, Shift = Bereich ab dem Anker (in Anzeige-Reihenfolge).
+struct Selection: Equatable {
+    var ids: Set<UUID> = []
+    var anchor: UUID?
+    /// Anzeige-Reihenfolge (Sortierung der Detail-Ansicht); verschwundene Einträge fallen aus der Auswahl.
+    var order: [UUID] = [] {
+        didSet {
+            ids.formIntersection(order)
+            if let a = anchor, !order.contains(a) { anchor = nil }
+        }
+    }
+
+    mutating func click(_ id: UUID, command: Bool = false, shift: Bool = false) {
+        if shift, let a = anchor, let i = order.firstIndex(of: a), let j = order.firstIndex(of: id) {
+            let range = Set(order[min(i, j)...max(i, j)])
+            ids = command ? ids.union(range) : range  // Anker bleibt (Finder)
+        } else if command {
+            if ids.remove(id) == nil { ids.insert(id) }
+            anchor = id
+        } else {
+            ids = [id]
+            anchor = id
+        }
+    }
+
+    mutating func clear() { ids = []; anchor = nil }
+
+    /// Pfeiltasten: vorige/nächste Datei allein auswählen (ohne Auswahl: erste bzw. letzte).
+    mutating func step(_ d: Int) {
+        guard !order.isEmpty else { return }
+        let i = anchor.flatMap { order.firstIndex(of: $0) }.map { min(max($0 + d, 0), order.count - 1) } ?? (d > 0 ? 0 : order.count - 1)
+        click(order[i])
+    }
+}
+
 private enum SortKey: String, CaseIterable {
     case added = "Hinzugefügt", name = "Name", size = "Größe"
 }
@@ -57,16 +92,22 @@ struct DetailView: View {
         VStack(spacing: 0) {
             header
             ScrollView {
-                if mode == "grid" {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 110, maximum: 140), spacing: 8)], spacing: 8) {
-                        ForEach(Array(items.enumerated()), id: \.element.id) { DetailCell(shelf: shelf, item: $1, index: $0, grid: true) }
+                Group {
+                    if mode == "grid" {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 110, maximum: 140), spacing: 8)], spacing: 8) {
+                            ForEach(Array(items.enumerated()), id: \.element.id) { DetailCell(shelf: shelf, item: $1, index: $0, grid: true) }
+                        }
+                    } else {
+                        LazyVStack(spacing: 2) { ForEach(Array(items.enumerated()), id: \.element.id) { DetailCell(shelf: shelf, item: $1, index: $0, grid: false) } }
                     }
-                } else {
-                    LazyVStack(spacing: 2) { ForEach(Array(items.enumerated()), id: \.element.id) { DetailCell(shelf: shelf, item: $1, index: $0, grid: false) } }
                 }
+                // Freie Fläche im Raster/der Liste: Klick hebt die Auswahl auf, Ziehen verschiebt das Fenster (wie sonst auf Glas).
+                .frame(maxWidth: .infinity, minHeight: ShelfPanel.detailSize.height - 70, alignment: .top)
+                .background { WindowDragArea { shelf.selection.clear() } }
             }
             .padding(.horizontal, 12).padding(.bottom, 12)
         }
+        .onChange(of: items.map(\.id), initial: true) { _, ids in shelf.selection.order = ids }
     }
 
     private var header: some View {
@@ -108,7 +149,7 @@ struct DetailView: View {
 }
 
 private struct DetailCell: View {
-    let shelf: Shelf
+    @ObservedObject var shelf: Shelf
     let item: Shelf.Item
     let index: Int
     let grid: Bool
@@ -116,22 +157,36 @@ private struct DetailCell: View {
     @State private var faded = false  // sanftes Einblenden der ersten Zellen, ohne Bewegung
     @State private var meta = ""
 
+    private var selected: Bool { shelf.selection.ids.contains(item.id) }
+    /// Finder-Markierung: graue Kachel (Raster: um die Vorschau, Liste: ganze Zeile).
+    private var tile: some View { RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.primary.opacity(selected ? 0.14 : 0)) }
+
     var body: some View {
         Group {
             if grid {
                 VStack(spacing: 4) {
-                    Thumb(url: item.url, maxW: 96, maxH: 80).frame(height: 84)
+                    Thumb(url: item.url, maxW: 96, maxH: 80).frame(width: 104, height: 88).background(tile).allowsHitTesting(false)
                     label(.center)
                 }
                 .padding(8).frame(maxWidth: .infinity)
             } else {
                 HStack(spacing: 10) {
-                    Thumb(url: item.url, maxW: 32, maxH: 32, shadow: false).frame(width: 36, height: 36)
+                    Thumb(url: item.url, maxW: 32, maxH: 32, shadow: false).frame(width: 36, height: 36).allowsHitTesting(false)
                     label(.leading)
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, 8).frame(height: 46)
+                .background(tile)
             }
+        }
+        // Hinter dem Inhalt (statt darüber), damit Name und Endung klickbar bleiben; Vorschau und Texte lassen Klicks durch.
+        // Klick wählt aus (Cmd/Shift wie im Finder) und gibt dem Panel die Tastatur (Leertaste = Quick Look, Pfeile, Esc).
+        .background {
+            DragOut(urls: { [item.url] }, onClick: { select() }, onRemove: { shelf.remove([item.url]) },
+                    onAirDrop: { AirDropSender.shared.send(shelf: shelf, urls: [item.url]) },
+                    convertItem: { ConvertMenu.menuItem(for: item.url, shelf: shelf) },  // nur die angeklickte Datei
+                    editItem: { EditMenu.menuItem(for: EditMenu.targetURLs(clicked: item.id, selection: shelf.selection, items: shelf.items), shelf: shelf) },
+                    onDragging: { shelf.setHover("dragout", $0) }, onMoved: { shelf.remove($0) })
         }
         .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.white.opacity(hover ? 0.06 : 0)))
         .opacity(faded || index >= 6 || !Motion.enabled ? 1 : 0)
@@ -142,17 +197,20 @@ private struct DetailCell: View {
         }
         .onHover { hover = $0 }
         .task(id: item.url) { meta = FileInfo.subtitle(item.url) }
-        .overlay {
-            DragOut(urls: { [item.url] }, onRemove: { shelf.remove([item.url]) },
-                    onAirDrop: { AirDropSender.shared.send(shelf: shelf, urls: [item.url]) },
-                    onDragging: { shelf.setHover("dragout", $0) }, onMoved: { shelf.remove($0) })
-        }
+    }
+
+    private func select() {
+        let m = NSEvent.modifierFlags
+        shelf.selection.click(item.id, command: m.contains(.command), shift: m.contains(.shift))
+        ShelfPanel.focus(shelf)
     }
 
     private func label(_ a: HorizontalAlignment) -> some View {
         VStack(alignment: a, spacing: 1) {
-            Text(item.url.lastPathComponent).font(.system(size: 12, weight: .medium)).lineLimit(1).truncationMode(.middle)
-            Text(meta).font(.system(size: 11)).monospacedDigit().foregroundStyle(.secondary).lineLimit(1)
+            NameField(url: item.url, shelf: shelf, selected: selected, lines: grid && selected ? 2 : 1) {
+                if !selected { shelf.selection.click(item.id) }
+            }
+            Text(meta).font(.system(size: 11)).monospacedDigit().foregroundStyle(.secondary).lineLimit(1).allowsHitTesting(false)
         }
     }
 }
