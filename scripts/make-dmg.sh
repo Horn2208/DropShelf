@@ -36,7 +36,40 @@ cp "$ROOT/THIRD-PARTY-LICENSES.md" "$ROOT/LICENSE" "$STAGING/"
 
 mkdir -p "$(dirname "$OUT")"
 rm -f "$OUT"
-hdiutil create -volname "$VOLNAME" -srcfolder "$STAGING" -ov -format UDZO "$OUT"
+# Hintergrund (scripts/make-dmg-background.swift) + Fenster-/Icon-Layout; Positionen müssen zum Hintergrund passen
+mkdir -p "$STAGING/.background"
+cp "$ROOT/Resources/dmg/background.tiff" "$STAGING/.background/background.tiff"
+RW="$STAGING.rw.dmg"
+hdiutil create -volname "$VOLNAME" -srcfolder "$STAGING" -ov -format UDRW "$RW"
+MNT="$(hdiutil attach "$RW" -readwrite -noverify -noautoopen | awk -F'\t' '/\/Volumes\//{print $NF}' | tail -1)"
+osascript <<OSA
+tell application "Finder"
+  tell disk "$VOLNAME"
+    open
+    set current view of container window to icon view
+    set toolbar visible of container window to false
+    set statusbar visible of container window to false
+    set bounds of container window to {200, 120, 740, 500}
+    set opts to icon view options of container window
+    set arrangement of opts to not arranged
+    set icon size of opts to 96
+    set background picture of opts to file ".background:background.tiff"
+    set position of item "$(basename "$APP")" of container window to {140, 170}
+    set position of item "Applications" of container window to {400, 170}
+    set position of item "THIRD-PARTY-LICENSES.md" of container window to {700, 170}
+    set position of item "LICENSE" of container window to {700, 270}
+    close
+    open
+    update without registering applications
+    delay 2
+    close
+  end tell
+end tell
+OSA
+sync
+hdiutil detach "$MNT"
+hdiutil convert "$RW" -format UDZO -o "$OUT"
+rm -f "$RW"
 hdiutil verify "$OUT"
 
 if [ -n "${DEVELOPER_ID:-}" ] && [ -n "${NOTARY_PROFILE:-}" ]; then
