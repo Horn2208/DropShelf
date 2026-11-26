@@ -30,8 +30,8 @@ targets:
       properties:
         LSUIElement: true
         CFBundleName: DropShelf
-        CFBundleShortVersionString: "0.2"
-        CFBundleVersion: "2"
+        CFBundleShortVersionString: "0.3"
+        CFBundleVersion: "3"
     entitlements:
       path: DropShelf.entitlements
       properties:
@@ -61,8 +61,8 @@ targets:
       properties:
         LSUIElement: true
         CFBundleName: DropShelf
-        CFBundleShortVersionString: "0.2"
-        CFBundleVersion: "2"
+        CFBundleShortVersionString: "0.3"
+        CFBundleVersion: "3"
     entitlements:
       path: DropShelf.entitlements
       properties:
@@ -94,8 +94,8 @@ targets:
       properties:
         LSUIElement: true
         CFBundleName: DropShelf
-        CFBundleShortVersionString: "0.2"
-        CFBundleVersion: "2"
+        CFBundleShortVersionString: "0.3"
+        CFBundleVersion: "3"
     entitlements:
       path: DropShelf.entitlements
       properties:

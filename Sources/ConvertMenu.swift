@@ -13,8 +13,28 @@ enum ConvertMenu {
         let presets: [Preset]
         /// Vorab-Hinweis (PDF → Text), wird im Menü als Abschnittstitel gezeigt.
         let warning: String?
+        /// Gehört zu einem nachladbaren Codec-Paket, das noch nicht installiert ist.
+        var pending = false
+        var packID: String? = nil
         var id: String { type.identifier }
+        var menuTitle: String { pending ? "\(title) (lädt bei Bedarf)" : title }
     }
+
+    /// Ziele aus dem Codec-Manifest: nur gleiche Art wie die Quelle (Bild, Audio, Video), noch nicht vorhandene Typen.
+    static func packTargets(from: UTType, manifest: PackManifest, existing: [UTType], installed: (String) -> Bool) -> [Target] {
+        let classes: [UTType] = [.image, .audio, .movie]
+        return manifest.packs.flatMap { p in
+            p.formats.compactMap { ext -> Target? in
+                guard let t = UTType(filenameExtension: ext), t != from, !existing.contains(t),
+                      classes.contains(where: { from.conforms(to: $0) && t.conforms(to: $0) }) else { return nil }
+                return Target(type: t, title: ext.uppercased(), presets: [], warning: nil, pending: !installed(p.id), packID: p.id)
+            }
+        }
+        .sorted { $0.title < $1.title }
+    }
+
+    /// Nach (De-)Installation eines Pakets: Menü neu berechnen.
+    @MainActor static func resetCache() { cache = [:] }
 
     /// „PI1_Tut_10.pdf“ → („PI1_Tut_10“, „.pdf“). Versteckte Dateien („.bashrc“) und Namen ohne Endung haben keine.
     static func split(_ name: String) -> (base: String, ext: String) {
@@ -60,14 +80,14 @@ enum ConvertMenu {
             }
             for t in s.targets {
                 if t.presets.count > 1 {
-                    let i = NSMenuItem(title: t.title, action: nil, keyEquivalent: "")
+                    let i = NSMenuItem(title: t.menuTitle, action: nil, keyEquivalent: "")
                     i.submenu = NSMenu()
                     for p in t.presets {
                         i.submenu?.addItem(ActionMenuItem(p.title) { ConvertJobs.shared.start(url, t, preset: p.id, shelf: shelf) })
                     }
                     sub.addItem(i)
                 } else {
-                    sub.addItem(ActionMenuItem(t.title) { ConvertJobs.shared.start(url, t, preset: t.presets.first?.id, shelf: shelf) })
+                    sub.addItem(ActionMenuItem(t.menuTitle) { ConvertJobs.shared.start(url, t, preset: t.presets.first?.id, shelf: shelf) })
                 }
             }
         }
@@ -85,6 +105,7 @@ enum ConvertMenu {
         if let c = cache[ext] { return c }
         let candidates = [(try? url.resourceValues(forKeys: [.contentTypeKey]))?.contentType, UTType(filenameExtension: ext)]
         var result: [Target] = []
+        defer { cache[ext] = result }
         for case let from? in candidates {
             let to = ConverterRegistry.targets(for: from)
             guard !to.isEmpty else { continue }
@@ -97,7 +118,11 @@ enum ConvertMenu {
             }
             break
         }
-        cache[ext] = result
+        if let from = candidates.compactMap({ $0 }).first {
+            result += packTargets(from: from, manifest: ConverterRegistry.packManifest, existing: result.map(\.type)) {
+                PackRegistry.isInstalled($0)
+            }
+        }
         return result
     }
 }
@@ -206,9 +231,33 @@ enum ConvertPrefs {
                     shelf.add(p.url)
                 }
                 if let n = p.notice { show(Banner(text: n, folderFor: url), on: shelfID) }
+            } catch ConvertError.codecMissing(let packID) {
+                await offerCodec(packID, then: { self.start(url, target, preset: preset, shelf: shelf) }, on: shelfID)
             } catch {
                 show(Banner(text: "Umwandeln fehlgeschlagen: \(error.localizedDescription)", folderFor: nil), on: shelfID)
             }
+        }
+    }
+
+    /// Alert „Codec laden?“; bei „Laden“ Fortschritt im Banner, danach einmalig neu starten.
+    private func offerCodec(_ packID: String, then retry: @escaping @MainActor () -> Void, on shelfID: UUID) async {
+        guard let pack = ConverterRegistry.packManifest.packs.first(where: { $0.id == packID }) else {
+            return show(Banner(text: "Codec „\(packID)“ ist nicht verfügbar.", folderFor: nil), on: shelfID)
+        }
+        let a = NSAlert()
+        a.messageText = "Codec laden?"
+        a.informativeText = "Für diese Umwandlung wird einmalig der Codec „\(pack.id)“ (\(pack.formats.map { $0.uppercased() }.joined(separator: ", "))) heruntergeladen."
+        a.addButton(withTitle: "Laden")
+        a.addButton(withTitle: "Abbrechen")
+        guard a.runModal() == .alertFirstButtonReturn else { return }
+        do {
+            try await PackInstall.run(pack) { p in
+                Task { @MainActor in self.show(Banner(text: "Codec wird geladen … \(Int(p * 100)) %", folderFor: nil), on: shelfID) }
+            }
+            dismiss(shelfID)
+            retry()
+        } catch {
+            show(Banner(text: "Codec laden fehlgeschlagen: \(error.localizedDescription)", folderFor: nil), on: shelfID)
         }
     }
 

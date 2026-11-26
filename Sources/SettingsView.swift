@@ -273,7 +273,7 @@ private struct Hero: View {
         .background {
             ZStack {
                 RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color(red: 0.04, green: 0.07, blue: 0.2).opacity(0.35))
-                RadialGradient(colors: [Color(red: 0.15, green: 0.4, blue: 1).opacity(0.55), .clear],
+                RadialGradient(colors: [NordicCobalt.accent.opacity(0.55), .clear],
                                center: .center, startRadius: 0, endRadius: 230)
             }
             .mask(RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -514,6 +514,72 @@ private struct ActivationPage: View {
     }
 }
 
+private struct FileFormatsGroup: View {
+    @State private var entries = FileFormats.load()
+    @State private var text = ""
+    @State private var category = FileFormats.Category.image
+    private var ext: String? { FileFormats.normalize(text).flatMap { e in entries.contains { $0.ext == e } ? nil : e } }
+
+    var body: some View {
+        SettingsGroup(title: "Dateiformate", footer: "Zusätzliche Endungen, die wie Bilder, Dokumente oder Medien behandelt werden (z. B. heic, jxl).") {
+            SettingsRow(symbol: "doc.badge.plus", title: "Endung hinzufügen") {
+                HStack {
+                    TextField("jxl", text: $text).textFieldStyle(.roundedBorder).frame(width: 80).onSubmit(add)
+                    menuPicker($category) { ForEach(FileFormats.Category.allCases, id: \.self) { Text($0.title).tag($0) } }
+                    Button("Hinzufügen", action: add).disabled(ext == nil)
+                }
+            }
+            ForEach(entries, id: \.self) { e in
+                SettingsRow(symbol: nil, title: ".\(e.ext)", subtitle: "\(e.category.title)") {
+                    Button { entries.removeAll { $0 == e }; FileFormats.save(entries) } label: { Image(systemName: "minus.circle") }
+                        .buttonStyle(.borderless).help("Entfernen")
+                }
+            }
+            ForEach(ConverterRegistry.packManifest.packs) { CodecPackRow(pack: $0) }
+        }
+    }
+
+    private func add() {
+        guard let ext else { return }
+        entries.append(.init(ext: ext, category: category))
+        FileFormats.save(entries)
+        text = ""
+    }
+}
+
+/// Status und Laden/Entfernen eines nachladbaren Codec-Pakets.
+private struct CodecPackRow: View {
+    let pack: Pack
+    @State private var version: String?
+    @State private var progress: Double?
+    @State private var error: String?
+
+    var body: some View {
+        SettingsRow(symbol: "shippingbox", title: pack.formats.map { $0.uppercased() }.joined(separator: ", "),
+                    subtitle: error ?? (version.map { "Geladen, Version \($0)" } ?? "Nicht geladen")) {
+            if let progress {
+                ProgressView(value: progress).frame(width: 90)
+            } else if version != nil {
+                Button("Entfernen") { PackRegistry.remove(pack.id); version = nil; ConvertMenu.resetCache() }
+            } else {
+                Button("Laden") { load() }
+            }
+        }
+        .onAppear { version = PackRegistry.installedVersion(pack.id) }
+    }
+
+    private func load() {
+        progress = 0; error = nil
+        Task {
+            do {
+                try await PackInstall.run(pack) { p in Task { @MainActor in progress = p } }
+                version = PackRegistry.installedVersion(pack.id)
+            } catch { self.error = error.localizedDescription }
+            progress = nil
+        }
+    }
+}
+
 private struct InteractionsPage: View {
     @AppStorage("autoCloseWhenEmpty") private var autoClose = true
     @AppStorage("autoCloseEmptyEnabled") private var idleOn = true
@@ -545,6 +611,7 @@ private struct InteractionsPage: View {
                 menuPicker($mode) { Text("Raster").tag("grid"); Text("Liste").tag("list") }
             }
         }
+        FileFormatsGroup()
     }
 }
 

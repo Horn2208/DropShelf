@@ -8,7 +8,7 @@ enum FileInfo {
     }
 
     static func isImage(_ url: URL) -> Bool {
-        (UTType(filenameExtension: url.pathExtension))?.conforms(to: .image) ?? false
+        (UTType(filenameExtension: url.pathExtension))?.conforms(to: .image) ?? false || FileFormats.has(url, .image)
     }
 
     /// Pixelmaße aus den Bild-Metadaten, ohne Volldekodierung.

@@ -184,7 +184,7 @@ private struct PageCell: View {
 /// Eigenes Fenster je Datei und Werkzeug (Muster `SettingsOpener`). Hält den Dateizugriff, solange es offen ist,
 /// und baut beim Schließen View (samt Player) ab.
 @MainActor final class EditWindow: NSObject, NSWindowDelegate {
-    enum Tool: String { case pages, trim }
+    enum Tool: String { case pages, trim, image }
     private static var open: [String: EditWindow] = [:]
 
     /// Ablage, in die Ergebnisse kommen (die, aus der zuletzt geöffnet wurde; ist sie zu, siehe `ShelfManager.target`).
@@ -230,6 +230,18 @@ private struct PageCell: View {
             }, report: { alert($0) }, close: { [weak w] in w?.window?.close() })
             return AnyView(TrimView(url: url, onTrim: { session.trim($0) }, onCancel: { session.cancel() },
                                     onError: { session.fail($0) }))
+        }
+    }
+
+    static func openImage(_ url: URL, shelf: Shelf) {
+        show(.image, url, shelf, size: NSSize(width: 560, height: 520), min: NSSize(width: 480, height: 360)) { w in
+            let model = ImageEditModel(url: url)
+            return AnyView(ImageEditView(model: model, save: { [weak w] in
+                do {
+                    w?.deliver(try model.save())
+                    w?.window?.close()
+                } catch { model.message = "Speichern fehlgeschlagen: \(error.localizedDescription)" }
+            }, cancel: { [weak w] in w?.window?.close() }))
         }
     }
 
@@ -310,5 +322,93 @@ private struct PageCell: View {
         a.addButton(withTitle: "Verwerfen")
         a.addButton(withTitle: "Abbrechen")
         return a.runModal() == .alertFirstButtonReturn
+    }
+}
+
+// MARK: - Bild bearbeiten
+
+/// Arbeitet auf Zwischendateien in einem eigenen Temp-Ordner; das Original ändert sich nie.
+@MainActor final class ImageEditModel: ObservableObject {
+    let source: URL
+    private let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    @Published private(set) var work: URL
+    @Published private(set) var image: NSImage?
+    @Published var message = ""
+    @Published var busy = false
+
+    init(url: URL) {
+        source = url
+        work = url
+        image = NSImage(contentsOf: url)
+    }
+
+    deinit { try? FileManager.default.removeItem(at: dir) }
+
+    var isDirty: Bool { work != source }
+
+    private func apply(_ step: (URL) async throws -> URL) async {
+        busy = true
+        defer { busy = false }
+        do {
+            work = try await step(work)
+            image = NSImage(contentsOf: work)
+            message = ""
+        } catch { message = error.localizedDescription }
+    }
+
+    func rotate(clockwise: Bool) async { await apply { try ImageTools.rotate($0, clockwise: clockwise, mode: .cache, cacheDir: self.dir) } }
+    func flip() async { await apply { try ImageTools.flip($0, horizontal: true, mode: .cache, cacheDir: self.dir) } }
+    func removeBackground() async { await apply { try await ImageTools.removeBackground($0, mode: .cache, cacheDir: self.dir) } }
+
+    func crop(_ a: CropAspect) async {
+        await apply {
+            let px = FileInfo.pixels($0) ?? .zero
+            return try ImageTools.crop($0, to: ImageTools.fitAspect(CGRect(x: 0, y: 0, width: 1, height: 1), in: px, a),
+                                       mode: .cache, cacheDir: self.dir)
+        }
+    }
+
+    /// Kopie neben dem Original: „Name (bearbeitet).ext“.
+    func save() throws -> EditMenu.Outcome {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + "." + work.pathExtension)
+        try FileManager.default.copyItem(at: work, to: tmp)
+        let p = try FileOutput.placeReporting(tmp, for: source, suffix: "bearbeitet", ext: work.pathExtension,
+                                              mode: .besideOriginal, cacheDir: Shelf.cacheDir)
+        return .init(p, for: source)
+    }
+}
+
+struct ImageEditView: View {
+    @ObservedObject var model: ImageEditModel
+    let save: () -> Void
+    let cancel: () -> Void
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Group {
+                if let image = model.image { Image(nsImage: image).resizable().scaledToFit() }
+                else { Text("Das Bild konnte nicht gelesen werden.").foregroundStyle(.secondary) }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            HStack {
+                Button { Task { await model.rotate(clockwise: false) } } label: { Image(systemName: "rotate.left") }.help("Links drehen")
+                Button { Task { await model.rotate(clockwise: true) } } label: { Image(systemName: "rotate.right") }.help("Rechts drehen")
+                Button { Task { await model.flip() } } label: { Image(systemName: "arrow.left.and.right.righttriangle.left.righttriangle.right") }.help("Spiegeln")
+                Menu("Zuschneiden") {
+                    Button("Quadrat") { Task { await model.crop(.square) } }
+                    Button("16:9") { Task { await model.crop(.r16x9) } }
+                    Button("4:3") { Task { await model.crop(.r4x3) } }
+                }.fixedSize()
+                Button("Hintergrund entfernen") { Task { await model.removeBackground() } }
+            }
+            .disabled(model.busy || model.image == nil)
+            if !model.message.isEmpty { Text(model.message).font(.caption).foregroundStyle(.orange) }
+            HStack {
+                Spacer()
+                Button("Abbrechen", action: cancel).keyboardShortcut(.cancelAction)
+                Button("Speichern", action: save).keyboardShortcut(.defaultAction).disabled(!model.isDirty || model.busy)
+            }
+        }
+        .padding(14)
     }
 }

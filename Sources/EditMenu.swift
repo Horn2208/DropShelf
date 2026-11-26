@@ -11,7 +11,8 @@ enum EditMenu {
         /// Fenster-Werkzeuge: nur bei genau einer passenden Datei.
         var pages: URL? = nil
         var trim: URL? = nil
-        var isEmpty: Bool { merge.isEmpty && compress.isEmpty && pages == nil && trim == nil }
+        var image: URL? = nil
+        var isEmpty: Bool { merge.isEmpty && compress.isEmpty && pages == nil && trim == nil && image == nil }
     }
 
     /// Ergebnis eines Auftrags (`ConvertJobs.run`): neue Dateien für die Ablage und höchstens eine Meldung.
@@ -37,8 +38,10 @@ enum EditMenu {
         let mergeable = urls.filter { isType($0, .pdf) || isType($0, .image) }
         let pdfs = urls.filter { isType($0, .pdf) }
         let media = urls.filter { trimExtensions.contains($0.pathExtension.lowercased()) }
+        let images = urls.filter { isType($0, .image) || FileFormats.has($0, .image) }
         return Plan(merge: mergeable.count >= 2 ? mergeable : [], compress: pdfs,
-                    pages: pdfs.count == 1 ? pdfs[0] : nil, trim: media.count == 1 ? media[0] : nil)
+                    pages: pdfs.count == 1 ? pdfs[0] : nil, trim: media.count == 1 ? media[0] : nil,
+                    image: urls.count == 1 && images.count == 1 ? images[0] : nil)
     }
 
     // MARK: Menü
@@ -64,6 +67,7 @@ enum EditMenu {
         }
         if let url = p.pages { sub.addItem(ActionMenuItem("Seiten verwalten …") { EditWindow.openPages(url, shelf: shelf) }) }
         if let url = p.trim { sub.addItem(ActionMenuItem("Kürzen …") { EditWindow.openTrim(url, shelf: shelf) }) }
+        if let url = p.image { sub.addItem(ActionMenuItem("Bild bearbeiten …") { EditWindow.openImage(url, shelf: shelf) }) }
         let item = NSMenuItem(title: "Bearbeiten", action: nil, keyEquivalent: "")
         item.submenu = sub
         return item

@@ -20,12 +20,14 @@ struct Converter: Sendable {
 enum ConvertError: LocalizedError {
     case unsupported, unreadable, writeFailed, heicUnavailable
     case unsupportedContainer(String)
+    case codecMissing(packID: String)
     var errorDescription: String? {
         switch self {
         case .unsupported: return "Diese Umwandlung wird nicht unterstützt."
         case .unreadable: return "Die Datei konnte nicht gelesen werden."
         case .writeFailed: return "Das Ergebnis konnte nicht geschrieben werden."
         case .heicUnavailable: return "HEIC kann auf diesem Mac nicht geschrieben werden (kein HEVC-Encoder)."
+        case .codecMissing: return "Für diese Umwandlung muss zuerst ein Codec geladen werden."
         case .unsupportedContainer(let ext):
             return "Das Videoformat „\(ext)“ kann auf diesem Mac von AVFoundation nicht geöffnet werden."
         }
@@ -58,10 +60,13 @@ enum ConverterRegistry {
     /// Wie `convert`, meldet aber, ob mangels Schreibrecht in den Cache ausgewichen wurde (`inCache`/`notice`).
     static func convertReporting(_ url: URL, to: UTType, _ o: ConvertOptions = ConvertOptions(),
                                  mode: OutputMode = .besideOriginal, cacheDir: URL = Shelf.cacheDir) async throws -> FileOutput.Placement {
-        guard let from = (try? url.resourceValues(forKeys: [.contentTypeKey]))?.contentType
-                ?? UTType(filenameExtension: url.pathExtension),
-              let conv = Self.converter(for: Conversion(from: from, to: to)) ?? Self.converter(forExtensionOf: url, to: to)
-        else {
+        let from = (try? url.resourceValues(forKeys: [.contentTypeKey]))?.contentType ?? UTType(filenameExtension: url.pathExtension)
+        let conv: Converter
+        if let from, let c = Self.converter(for: Conversion(from: from, to: to)) ?? Self.converter(forExtensionOf: url, to: to) {
+            conv = c
+        } else if let c = try packConverter(url, to: to) {
+            conv = c
+        } else {
             let ext = url.pathExtension.lowercased()
             if VideoConverter.knownUnsupportedContainerExtensions.contains(ext) {
                 throw ConvertError.unsupportedContainer(ext.uppercased())
@@ -80,6 +85,21 @@ enum ConverterRegistry {
             return try FileOutput.placeReporting(out, for: url, suffix: dirSuffix, ext: "", mode: mode, cacheDir: cacheDir)
         }
         return try FileOutput.placeReporting(out, for: url, suffix: "", ext: ext, mode: mode, cacheDir: cacheDir)
+    }
+
+    /// Manifest der nachladbaren Codec-Pakete (in Tests ersetzbar).
+    nonisolated(unsafe) static var packManifest = PackManifest.bundled
+
+    /// Kein eingebauter Konverter: Paket für Ziel- oder Quellendung suchen; nicht installiert → `codecMissing`.
+    private static func packConverter(_ url: URL, to: UTType) throws -> Converter? {
+        let toExt = to.preferredFilenameExtension ?? ""
+        guard let pack = packManifest.pack(for: toExt) ?? packManifest.pack(for: url.pathExtension) else { return nil }
+        guard let dylib = PackRegistry.installedURL(pack.id) else { throw ConvertError.codecMissing(packID: pack.id) }
+        return Converter(id: "pack-" + pack.id, pairs: []) { src, dst, _ in
+            let convert = try CodecLoader.load(dylib, expectedAPI: pack.apiVersion)
+                .symbol(CodecABI.convertSymbol, as: CodecABI.Convert.self)
+            guard convert(src.path, dst.path, toExt) == 0 else { throw ConvertError.unsupported }
+        }
     }
 
     /// Rückfall, falls das Dateisystem den Typ nicht (z. B. „md“) erkennt: nach Endung suchen.

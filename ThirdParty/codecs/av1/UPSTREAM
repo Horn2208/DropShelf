@@ -1,0 +1,4 @@
+# Offizieller Release-Tarball von libaom (der googlesource-Archivlink ist nicht byte-stabil, daher storage.googleapis.com).
+AOM_VERSION=3.15.3
+AOM_URL=https://storage.googleapis.com/aom-releases/libaom-3.15.3.tar.gz
+AOM_SHA256=12c01dc731ed7b5a999e28120b45bf58a002ba3435a4ba2cfbc1e084a27c9c04
