@@ -30,6 +30,9 @@ fi
 
 ditto "$APP" "$STAGING/$(basename "$APP")"
 ln -s /Applications "$STAGING/Applications"
+# Lizenztexte neben die App legen (Pfad relativ zum Repo-Wurzelverzeichnis des Skripts)
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cp "$ROOT/THIRD-PARTY-LICENSES.md" "$ROOT/LICENSE" "$STAGING/"
 
 mkdir -p "$(dirname "$OUT")"
 rm -f "$OUT"

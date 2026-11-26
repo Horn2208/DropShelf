@@ -23,6 +23,7 @@
 		130ADC045846A461A711C3CB /* PDFToolsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDD03500AFA8618A63A3963C /* PDFToolsTests.swift */; };
 		14537147AAFDFF9A08ED7F44 /* ImageTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64BDE5B5134E7C7C85D22C50 /* ImageTools.swift */; };
 		161163FF0ADC2C6FFCA93026 /* ConvertMenuTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10173A33A1A46D59ED16AC75 /* ConvertMenuTests.swift */; };
+		168A2CA190D19589EDF41A31 /* NOTICE in Resources */ = {isa = PBXBuildFile; fileRef = D9BFBE1074A43BC7F6DAEA3B /* NOTICE */; };
 		18A61FF14B3F9D6F821CD492 /* ShelfView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFBC993DF6C34EFD9F0CE718 /* ShelfView.swift */; };
 		190B8E528EAE1AC785560850 /* DetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F8C49819561928CB7E089AD /* DetailView.swift */; };
 		19F46DD5BCE849F0C23E7BAC /* FontConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00379EAD4F865B08BAFD06E /* FontConverter.swift */; };
@@ -135,6 +136,7 @@
 		B42A2475170721B84CA55FB1 /* DropShelfCodecs in Frameworks */ = {isa = PBXBuildFile; productRef = EA0A07498B000AB6562FC193 /* DropShelfCodecs */; };
 		B8CED9DD9D50F95D3BD1A0A0 /* ConvertMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE273BBC33BC00F8DD9A2A79 /* ConvertMenu.swift */; };
 		B93FDD93EB7CE616EDEDBE36 /* ConvertMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE273BBC33BC00F8DD9A2A79 /* ConvertMenu.swift */; };
+		B9BF88DA78506F07DACFA717 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 68CD3FBB6038D20A6D77DF48 /* LICENSE */; };
 		BA9E063789B0A1CB7BDBD744 /* FontConverterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28F3E027483A88D1510B4F1 /* FontConverterTests.swift */; };
 		BFEB99C9D98DA604EE9AC1FB /* ShelfStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F4E26B13F44FFC2D7F1CA8D /* ShelfStore.swift */; };
 		C11C5200BA0B6A734C5E341E /* TrimView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC65834A1B1FF442F4368765 /* TrimView.swift */; };
@@ -152,6 +154,7 @@
 		CE86112D759477A2968F1A16 /* ShelfFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE355BE4340BF71AE64FF90 /* ShelfFilter.swift */; };
 		CF160FDE246D2C50F05D34DD /* HotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198BAAE92DAB36DD31BE5869 /* HotKey.swift */; };
 		CF3695F20BDB72B284804006 /* DragOutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93E26FA53FBA96D20AFA0C78 /* DragOutView.swift */; };
+		D00327A8409179E6F214F858 /* THIRD-PARTY-LICENSES.md in Resources */ = {isa = PBXBuildFile; fileRef = 68A9570B7196E8D85CA243F0 /* THIRD-PARTY-LICENSES.md */; };
 		D07EDFFFEC2D84140CFC4726 /* ClipboardPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93F3D7221E37C368C241EF43 /* ClipboardPanel.swift */; };
 		D2FE7E3DCF26D714D7939CEE /* HistoryPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D2B08962DB1244729A6DEF /* HistoryPanel.swift */; };
 		D3367113091E4CC1C3B5FEE9 /* HotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198BAAE92DAB36DD31BE5869 /* HotKey.swift */; };
@@ -210,6 +213,8 @@
 		64BDE5B5134E7C7C85D22C50 /* ImageTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageTools.swift; sourceTree = "<group>"; };
 		65878C2174DA86AB2BDAEA3B /* DropShelf Troll.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "DropShelf Troll.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		67ED42389CECE2EDBF165D46 /* AirDropSender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirDropSender.swift; sourceTree = "<group>"; };
+		68A9570B7196E8D85CA243F0 /* THIRD-PARTY-LICENSES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "THIRD-PARTY-LICENSES.md"; sourceTree = "<group>"; };
+		68CD3FBB6038D20A6D77DF48 /* LICENSE */ = {isa = PBXFileReference; path = LICENSE; sourceTree = "<group>"; };
 		6A6A2A02AB75DD75992DE6D3 /* VideoConverterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoConverterTests.swift; sourceTree = "<group>"; };
 		6E7FD623C6C67FC691A1AB41 /* ImageConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageConverter.swift; sourceTree = "<group>"; };
 		6F4E26B13F44FFC2D7F1CA8D /* ShelfStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfStore.swift; sourceTree = "<group>"; };
@@ -247,6 +252,7 @@
 		D19BDB042239EB8FD3D93300 /* DropShelfTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DropShelfTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D1D2B08962DB1244729A6DEF /* HistoryPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryPanel.swift; sourceTree = "<group>"; };
 		D28F3E027483A88D1510B4F1 /* FontConverterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontConverterTests.swift; sourceTree = "<group>"; };
+		D9BFBE1074A43BC7F6DAEA3B /* NOTICE */ = {isa = PBXFileReference; path = NOTICE; sourceTree = "<group>"; };
 		DFB111C2A1FF101B4E55A3E9 /* VideoConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoConverter.swift; sourceTree = "<group>"; };
 		E00379EAD4F865B08BAFD06E /* FontConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontConverter.swift; sourceTree = "<group>"; };
 		EE5D1FB08E6AA3D75E5B315B /* RenameApplyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenameApplyTests.swift; sourceTree = "<group>"; };
@@ -402,6 +408,9 @@
 		FBB1F7A0EA4112F12CAD963D = {
 			isa = PBXGroup;
 			children = (
+				68CD3FBB6038D20A6D77DF48 /* LICENSE */,
+				D9BFBE1074A43BC7F6DAEA3B /* NOTICE */,
+				68A9570B7196E8D85CA243F0 /* THIRD-PARTY-LICENSES.md */,
 				EC12B5F73B35690CE7C64B9D /* Packages */,
 				18F1C0D2EBB2436504CB08A1 /* Resources */,
 				EBE9F70094D07B3FEFD0231F /* Sources */,
@@ -547,6 +556,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				43F93387EB943470CA1F6218 /* Assets.xcassets in Resources */,
+				B9BF88DA78506F07DACFA717 /* LICENSE in Resources */,
+				168A2CA190D19589EDF41A31 /* NOTICE in Resources */,
+				D00327A8409179E6F214F858 /* THIRD-PARTY-LICENSES.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

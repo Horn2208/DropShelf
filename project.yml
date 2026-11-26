@@ -13,7 +13,15 @@ targets:
   DropShelf:
     type: application
     platform: macOS
-    sources: [Sources, Resources]
+    sources:
+      - Sources
+      - Resources
+      - path: THIRD-PARTY-LICENSES.md
+        buildPhase: resources
+      - path: LICENSE
+        buildPhase: resources
+      - path: NOTICE
+        buildPhase: resources
     dependencies:
       - package: DropShelfCodecs
         product: DropShelfCodecs
