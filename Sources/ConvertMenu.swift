@@ -428,6 +428,12 @@ struct NameField: View {
         }
         .padding(.horizontal, pill ? 4 : 0).padding(.vertical, pill ? 1 : 0)
         .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(pill ? NordicCobalt.accent : .clear))
+        .onReceive(shelf.$renameRequest) { u in
+            guard let u, u == url, !editing else { return }
+            shelf.renameRequest = nil
+            onTap()
+            editing = true
+        }
     }
 
     @ViewBuilder private func name(_ base: String) -> some View {
