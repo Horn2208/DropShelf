@@ -147,7 +147,7 @@ struct DropShelfApp: App {
     /// Menüeintrag mit dem aktuell aufgenommenen Kürzel (nur zur Anzeige; ausgelöst wird es global über Carbon).
     @ViewBuilder
     private func hotkeyButton(_ title: String, _ id: UInt32, _ action: @escaping () -> Void) -> some View {
-        let on = UserDefaults.standard.object(forKey: ["hotkeyAirDropEnabled", "hotkeyShelfEnabled", "hotkeyHistoryEnabled", "hotkeyClipboardEnabled", "hotkeyClipHistoryEnabled"][Int(id) - 1]) as? Bool ?? true
+        let on = UserDefaults.standard.object(forKey: ["hotkeyAirDropEnabled", "hotkeyShelfEnabled", "hotkeyHistoryEnabled", "hotkeyClipboardEnabled", "hotkeyClipHistoryEnabled", "hotkeyFinderEnabled"][Int(id) - 1]) as? Bool ?? true
         if on, let k = HotKey.menuShortcut(id) {
             Button(title, action: action).keyboardShortcut(k.key, modifiers: k.mods)
         } else {

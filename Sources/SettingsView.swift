@@ -452,6 +452,7 @@ private struct ShortcutsPage: View {
     @AppStorage("hotkeyAirDropEnabled") private var airOn = true
     @AppStorage("hotkeyHistoryEnabled") private var histOn = true
     @AppStorage("hotkeyClipHistoryEnabled") private var clipHistOn = true
+    @AppStorage("hotkeyFinderEnabled") private var finderOn = true
 
     var body: some View {
         SettingsGroup(title: "Globale Kürzel",
@@ -461,12 +462,14 @@ private struct ShortcutsPage: View {
             shortcut("Aktive Ablage per AirDrop", "airdrop", 1, $airOn)
             shortcut("Verlauf öffnen", "clock.arrow.circlepath", 3, $histOn)
             shortcut("Zwischenablage-Verlauf", "doc.on.doc", 5, $clipHistOn)
+            shortcut("Finder-Auswahl ins Shelf", "folder", 6, $finderOn)
         }
         .onChange(of: shelfOn) { _ in HotKey.shared.sync() }
         .onChange(of: clipOn) { _ in HotKey.shared.sync() }
         .onChange(of: airOn) { _ in HotKey.shared.sync() }
         .onChange(of: histOn) { _ in HotKey.shared.sync() }
         .onChange(of: clipHistOn) { _ in HotKey.shared.sync() }
+        .onChange(of: finderOn) { _ in HotKey.shared.sync() }
     }
 
     private func shortcut(_ title: String, _ symbol: String, _ id: UInt32, _ on: Binding<Bool>) -> some View {
@@ -824,6 +827,7 @@ struct ShortcutRecorder: View {
 
     private func save(_ c: (code: Int, mods: Int)) {
         stop()
+        if (1...6).contains(where: { UInt32($0) != id && HotKey.combo(UInt32($0)) == c }) { NSSound.beep(); return }  // schon von einem anderen Kürzel belegt
         combo = c
         UserDefaults.standard.set(c.code, forKey: "hotkeyCode\(id)")
         UserDefaults.standard.set(c.mods, forKey: "hotkeyMods\(id)")

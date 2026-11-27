@@ -331,6 +331,24 @@ final class ShelfManager {
         _ = shelf.drop(all.map { NSItemProvider(object: $0) })
     }
 
+    /// Markierte Dateien/Ordner im Finder (per AppleEvent) in die aktive Ablage; ohne offene Ablage wird eine neue geöffnet. Keine Auswahl → Piepton.
+    func addFinderSelection() {
+        let src = "tell application \"Finder\" to get selection as alias list"
+        var err: NSDictionary?
+        guard let r = NSAppleScript(source: src)?.executeAndReturnError(&err) else { NSSound.beep(); return }
+        let urls = Self.urls(fromAliasList: r)
+        guard !urls.isEmpty else { NSSound.beep(); return }
+        if activeShelf == nil { newShelf(at: NSEvent.mouseLocation) }
+        urls.forEach { activeShelf?.add($0) }
+    }
+
+    /// AppleScript-Ergebnis (Liste oder einzelnes Alias) → file-URLs.
+    static func urls(fromAliasList d: NSAppleEventDescriptor) -> [URL] {
+        let items = d.numberOfItems == 0 ? [d] : (1...d.numberOfItems).compactMap { d.atIndex($0) }
+        return items.compactMap { $0.coerce(toDescriptorType: typeFileURL)?.data }
+            .compactMap { URL(dataRepresentation: $0, relativeTo: nil) }
+    }
+
     private static func origin(forMouse m: CGPoint) -> CGPoint {
         CGPoint(x: m.x - ShelfPanel.width / 2, y: m.y - ShelfPanel.collapsedHeight + 40)
     }

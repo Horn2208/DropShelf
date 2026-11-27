@@ -2,7 +2,7 @@ import AppKit
 import Carbon
 import SwiftUI
 
-/// Globale Tastenkürzel ⌃⌥A (AirDrop), ⌃⌥Space (neue Ablage an der Maus), ⌃⌥V (Verlauf) und ⌃⌥C (Ablage aus der Zwischenablage) (Carbon, braucht keine Bedienungshilfen-Berechtigung).
+/// Globale Tastenkürzel ⌃⌥A (AirDrop), ⌃⌥Space (neue Ablage an der Maus), ⌃⌥V (Verlauf) und ⌃⌥C (Ablage aus der Zwischenablage), ⌃⌥F (Finder-Auswahl ins Shelf) (Carbon, braucht keine Bedienungshilfen-Berechtigung).
 /// Kürzel frei belegbar (Einstellungen › Kürzel). Je Kürzel per UserDefaults abschaltbar (`hotkeyAirDropEnabled`, `hotkeyShelfEnabled`, `hotkeyHistoryEnabled`); `sync()` gleicht an.
 @MainActor
 final class HotKey: ObservableObject {
@@ -12,11 +12,12 @@ final class HotKey: ObservableObject {
     private var handler: EventHandlerRef?
     private let keys: [(id: UInt32, code: Int, pref: String)] = [
         (1, kVK_ANSI_A, "hotkeyAirDropEnabled"), (2, kVK_Space, "hotkeyShelfEnabled"), (3, kVK_ANSI_V, "hotkeyHistoryEnabled"),
-        (4, kVK_ANSI_C, "hotkeyClipboardEnabled"), (5, kVK_ANSI_V, "hotkeyClipHistoryEnabled")]
+        (4, kVK_ANSI_C, "hotkeyClipboardEnabled"), (5, kVK_ANSI_V, "hotkeyClipHistoryEnabled"),
+        (6, kVK_ANSI_F, "hotkeyFinderEnabled")]
 
     /// Gespeichertes Kürzel (`hotkeyCode<id>`/`hotkeyMods<id>`, Carbon-Modifier) oder Standard (⌃⌥ + Taste).
     static func defaultCombo(_ id: UInt32) -> (code: Int, mods: Int) {
-        ([1: kVK_ANSI_A, 2: kVK_Space, 3: kVK_ANSI_V, 4: kVK_ANSI_C, 5: kVK_ANSI_V][Int(id)] ?? 0, id == 5 ? controlKey : controlKey | optionKey)
+        ([1: kVK_ANSI_A, 2: kVK_Space, 3: kVK_ANSI_V, 4: kVK_ANSI_C, 5: kVK_ANSI_V, 6: kVK_ANSI_F][Int(id)] ?? 0, id == 5 ? controlKey : controlKey | optionKey)
     }
 
     static func combo(_ id: UInt32) -> (code: Int, mods: Int) {
@@ -63,6 +64,7 @@ final class HotKey: ObservableObject {
                     case 2: ShelfManager.shared.newShelf(at: NSEvent.mouseLocation)
                     case 3: HistoryPanel.toggle()
                     case 5: ClipboardPanel.toggle()
+                    case 6: ShelfManager.shared.addFinderSelection()
                     default: ShelfManager.shared.newShelfFromClipboard()
                     }
                 }
