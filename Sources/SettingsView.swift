@@ -441,9 +441,14 @@ private struct AppearancePage: View {
                     .disabled(!refraction)
                 SettingsRow(symbol: "arrow.left.and.right", title: "Reichweite der Lichtbrechung") { sliderControl($reach, "schmal", "breit") }
                     .disabled(!refraction)
-                SettingsRow(symbol: "drop", title: "Klares Glas mit starker Lichtbrechung") {
-                    Button("Wie Canopy") { glass = 0.1; refraction = true; strength = 1; reach = 0.7 }.controlSize(.regular)
-                }
+                SettingsToggleRow(symbol: "drop", title: "Klares Glas mit starker Lichtbrechung",
+                                  subtitle: "Glas wird klar, die Lichtbrechung stark und breit.",
+                                  isOn: Binding(
+                                      get: { glass <= 0.11 && refraction && strength >= 0.99 && abs(reach - 0.7) < 0.01 },
+                                      set: { on in
+                                          if on { glass = 0.1; refraction = true; strength = 1; reach = 0.7 }
+                                          else { refraction = false }
+                                      }))
             }
         }
         SettingsGroup(title: "Bewegung",
