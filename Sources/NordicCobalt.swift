@@ -78,18 +78,102 @@ private struct BrushedMetal: ViewModifier {
     }
 }
 
-/// Deckender milchiger Hintergrund mit Kobalt-Ton für die Bearbeitungs-Fenster.
+/// Echtes Hintergrund-Material (verschwommener Desktop dahinter). Braucht ein transparentes Fenster.
+private struct BehindWindowBlur: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let v = NSVisualEffectView()
+        v.material = .hudWindow
+        v.blendingMode = .behindWindow
+        v.state = .active
+        return v
+    }
+    func updateNSView(_ v: NSVisualEffectView, context: Context) {}
+}
+
+/// Milchglas für die Bearbeitungs-Fenster: Blur, darüber eine helle, leicht kobaltgetönte Schicht mit viel Deckkraft, Lichtkante oben.
 private struct MilkyCobalt: ViewModifier {
+    @Environment(\.colorScheme) private var scheme
     func body(content: Content) -> some View {
+        let dark = scheme == .dark
         content.background {
             ZStack {
-                NordicCobalt.milkyBase
-                NordicCobalt.accent.opacity(0.10)
-                LinearGradient(colors: [.white.opacity(0.12), .clear], startPoint: .top, endPoint: .center)
+                BehindWindowBlur()
+                (dark ? Color.white.opacity(0.16) : Color.white.opacity(0.62))  // Milch
+                NordicCobalt.accent.opacity(dark ? 0.10 : 0.06)
+                LinearGradient(colors: [.white.opacity(dark ? 0.10 : 0.30), .clear], startPoint: .top, endPoint: .center)
+                VStack(spacing: 0) {  // Lichtkante
+                    LinearGradient(colors: [.white.opacity(0.0), .white.opacity(dark ? 0.35 : 0.9), .white.opacity(0.0)],
+                                   startPoint: .leading, endPoint: .trailing).frame(height: 1)
+                    Spacer()
+                }
             }
             .ignoresSafeArea()
         }
     }
+}
+
+// MARK: - Bedienleiste ("Armatur") der Bearbeitungsfenster
+
+/// Schwebende Glas-Kapsel mit Lichtkante und Schatten.
+private struct GlassCapsule: ViewModifier {
+    @Environment(\.colorScheme) private var scheme
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, 10).padding(.vertical, 8)
+            .background {
+                Capsule().fill(.ultraThinMaterial)
+                    .overlay(Capsule().fill(Color.white.opacity(scheme == .dark ? 0.06 : 0.35)))
+                    .overlay(Capsule().strokeBorder(LinearGradient(colors: [.white.opacity(scheme == .dark ? 0.35 : 0.9), .white.opacity(0.08)],
+                                                                   startPoint: .top, endPoint: .bottom), lineWidth: 1))
+                    .shadow(color: .black.opacity(0.18), radius: 12, y: 5)
+            }
+    }
+}
+
+/// Gemeinsame Optik der Leistenknöpfe: Klick skaliert leicht herunter (nicht bei „Bewegung reduzieren“).
+struct BarButtonStyle: ButtonStyle {
+    enum Kind { case icon, pill, primary, quiet }
+    let kind: Kind
+    @Environment(\.isEnabled) private var enabled
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hover = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        let dark = scheme == .dark
+        let label = configuration.label
+            .font(.system(size: 12.5, weight: kind == .icon ? .regular : .medium))
+            .foregroundStyle(kind == .primary ? Color.white : NordicCobalt.textPrimary)
+            .padding(.horizontal, kind == .icon ? 0 : 14)
+            .frame(width: kind == .icon ? 30 : nil, height: 30)
+        return label
+            .background {
+                Capsule().fill(fill(dark: dark, pressed: configuration.isPressed))
+                    .overlay(Capsule().strokeBorder(kind == .primary ? Color.white.opacity(0.35) : NordicCobalt.hairline, lineWidth: 1))
+            }
+            .opacity(enabled ? 1 : 0.4)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.95 : 1)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: hover)
+            .onHover { hover = $0 }
+            .contentShape(Capsule())
+    }
+
+    private func fill(dark: Bool, pressed: Bool) -> AnyShapeStyle {
+        if kind == .primary {
+            let o = pressed ? 0.85 : (hover && enabled ? 1 : 0.92)
+            return AnyShapeStyle(LinearGradient(colors: [NordicCobalt.accent.opacity(o), NordicCobalt.highlight.opacity(o)],
+                                                startPoint: .leading, endPoint: .trailing))
+        }
+        let base = dark ? 0.10 : 0.45
+        let boost = pressed ? 0.18 : (hover && enabled ? 0.12 : 0)
+        return AnyShapeStyle(Color.white.opacity(base + boost))
+    }
+}
+
+/// Dünne senkrechte Trennlinie zwischen Werkzeugen und Aktionen.
+struct BarDivider: View {
+    var body: some View { Rectangle().fill(NordicCobalt.hairline).frame(width: 1, height: 20).padding(.horizontal, 4) }
 }
 
 extension View {
@@ -97,6 +181,8 @@ extension View {
     func nordicShimmer() -> some View { modifier(NordicShimmer()) }
     /// Feine gebürstete Metall-Textur als Hintergrund (Akzent, sparsam einsetzen).
     func brushedMetal() -> some View { modifier(BrushedMetal()) }
-    /// Deckender, milchiger Bearbeitungs-Hintergrund mit Kobalt-Ton.
+    /// Milchglas-Hintergrund (Blur + helle Milchschicht) mit Kobalt-Ton.
     func milkyCobalt() -> some View { modifier(MilkyCobalt()) }
+    /// Schwebende Glas-Kapsel für die Bedienleiste.
+    func glassCapsule() -> some View { modifier(GlassCapsule()) }
 }
