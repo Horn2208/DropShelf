@@ -369,7 +369,6 @@ private struct GeneralPage: View {
     @AppStorage("openShelfOnLaunch") private var openOnLaunch = true
     @State private var login = SMAppService.mainApp.status
     @State private var error: String?
-    @AppStorage(UpdateManager.autoKey) private var autoUpdate = true
     @ObservedObject private var updates = UpdateManager.shared
 
     var body: some View {
@@ -377,20 +376,14 @@ private struct GeneralPage: View {
     }
 
     private var updateGroup: some View {
-        SettingsGroup(title: "Updates", footer: updates.downloadStatus ?? updates.message) {
-            SettingsToggleRow(symbol: "arrow.triangle.2.circlepath", title: "Automatisch nach Updates suchen",
-                              subtitle: "Prüft beim Start höchstens einmal täglich auf GitHub.", isOn: $autoUpdate)
-            SettingsRow(symbol: "arrow.down.circle", title: "Jetzt prüfen") {
-                HStack {
-                    if let r = updates.available { Button("Version \(r.version) öffnen") { updates.openRelease() } }
-                    if let p = updates.downloadProgress {
-                        ProgressView(value: p).frame(width: 80)
-                        Button("Abbrechen") { updates.cancelDownload() }
-                    } else if updates.available != nil {
-                        Button("Herunterladen und öffnen") { updates.downloadUpdate() }
-                    }
-                    Button("Jetzt prüfen") { updates.checkNow() }.disabled(updates.checking)
-                }
+        SettingsGroup(title: "Updates", footer: updates.message) {
+            if updates.automaticChecksAvailable {
+                SettingsToggleRow(symbol: "arrow.triangle.2.circlepath", title: "Automatisch nach Updates suchen",
+                                  subtitle: "Sparkle prüft regelmäßig im Hintergrund und installiert nach Rückfrage.",
+                                  isOn: Binding(get: { updates.automaticChecks }, set: { updates.automaticChecks = $0 }))
+            }
+            SettingsRow(symbol: "arrow.down.circle", title: "Nach Updates suchen") {
+                Button("Jetzt prüfen") { updates.checkForUpdates() }.disabled(!updates.canCheck)
             }
         }
     }
