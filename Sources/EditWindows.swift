@@ -236,7 +236,7 @@ private struct PageCell: View {
     }
 
     static func openImage(_ url: URL, shelf: Shelf) {
-        show(.image, url, shelf, size: NSSize(width: 560, height: 520), min: NSSize(width: 480, height: 360)) { w in
+        show(.image, url, shelf, size: NSSize(width: 700, height: 540), min: NSSize(width: 660, height: 360)) { w in
             let model = ImageEditModel(url: url)
             return AnyView(ImageEditView(model: model, save: { [weak w] in
                 do {
@@ -265,7 +265,10 @@ private struct PageCell: View {
         let host = NSHostingController(rootView: AnyView(root.milkyCobalt()))
         host.sizingOptions = []  // Größe bestimmt das Fenster, nicht der Inhalt
         let window = NSWindow(contentViewController: host)
-        window.styleMask = [.titled, .closable, .resizable]
+        window.styleMask = [.titled, .closable, .resizable, .fullSizeContentView]
+        window.titlebarAppearsTransparent = true  // Milchglas reicht bis unter die Titelzeile
+        window.isOpaque = false
+        window.backgroundColor = .clear  // sonst scheint der Desktop nicht durch
         window.title = url.lastPathComponent
         window.level = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue + 1)  // über der schwebenden Ablage
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -385,6 +388,8 @@ struct ImageEditView: View {
     let save: () -> Void
     let cancel: () -> Void
 
+    private var off: Bool { model.busy || model.image == nil }
+
     var body: some View {
         VStack(spacing: 10) {
             Group {
@@ -392,24 +397,30 @@ struct ImageEditView: View {
                 else { Text("Das Bild konnte nicht gelesen werden.").foregroundStyle(.secondary) }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            HStack {
-                Button { Task { await model.rotate(clockwise: false) } } label: { Image(systemName: "rotate.left") }.help("Links drehen")
-                Button { Task { await model.rotate(clockwise: true) } } label: { Image(systemName: "rotate.right") }.help("Rechts drehen")
-                Button { Task { await model.flip() } } label: { Image(systemName: "arrow.left.and.right.righttriangle.left.righttriangle.right") }.help("Spiegeln")
-                Menu("Zuschneiden") {
+            HStack(spacing: 6) {
+                Button { Task { await model.rotate(clockwise: false) } } label: { Image(systemName: "rotate.left") }
+                    .buttonStyle(BarButtonStyle(kind: .icon)).help("Links drehen").disabled(off)
+                Button { Task { await model.rotate(clockwise: true) } } label: { Image(systemName: "rotate.right") }
+                    .buttonStyle(BarButtonStyle(kind: .icon)).help("Rechts drehen").disabled(off)
+                Button { Task { await model.flip() } } label: { Image(systemName: "arrow.left.and.right.righttriangle.left.righttriangle.right") }
+                    .buttonStyle(BarButtonStyle(kind: .icon)).help("Spiegeln").disabled(off)
+                BarDivider()
+                Menu {
                     Button("Quadrat") { Task { await model.crop(.square) } }
                     Button("16:9") { Task { await model.crop(.r16x9) } }
                     Button("4:3") { Task { await model.crop(.r4x3) } }
-                }.fixedSize()
-                Button("Hintergrund entfernen") { Task { await model.removeBackground() } }
+                } label: { Label("Zuschneiden", systemImage: "crop") }
+                    .menuStyle(.button).menuIndicator(.hidden).buttonStyle(BarButtonStyle(kind: .pill)).fixedSize().disabled(off)
+                Button { Task { await model.removeBackground() } } label: { Label("Hintergrund entfernen", systemImage: "wand.and.stars") }
+                    .buttonStyle(BarButtonStyle(kind: .pill))
+                    .disabled(off)
+                BarDivider()
+                Button("Abbrechen", action: cancel).keyboardShortcut(.cancelAction).buttonStyle(BarButtonStyle(kind: .quiet))
+                Button("Speichern", action: save).keyboardShortcut(.defaultAction).buttonStyle(BarButtonStyle(kind: .primary))
+                    .disabled(!model.isDirty || model.busy)
             }
-            .disabled(model.busy || model.image == nil)
+            .glassCapsule()
             if !model.message.isEmpty { Text(model.message).font(.caption).foregroundStyle(.orange) }
-            HStack {
-                Spacer()
-                Button("Abbrechen", action: cancel).keyboardShortcut(.cancelAction)
-                Button("Speichern", action: save).keyboardShortcut(.defaultAction).disabled(!model.isDirty || model.busy)
-            }
         }
         .padding(14)
     }
