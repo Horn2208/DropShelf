@@ -76,6 +76,7 @@
 		49EE80DA81DD927D8A630F64 /* DropShelfCodecs in Frameworks */ = {isa = PBXBuildFile; productRef = E2461A50B981088FB8422CB2 /* DropShelfCodecs */; };
 		4AB2A075E9245EDE05C192E9 /* UpdateCheckTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D54A3F55D60E7FDBD5E82A /* UpdateCheckTests.swift */; };
 		4B6023C01012CE4CEC63CC51 /* TrimView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC65834A1B1FF442F4368765 /* TrimView.swift */; };
+		4BF9EA1D538B6F447F892B74 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 3037DB6588F9942553C6535B /* Sparkle */; };
 		4D893C235AEC94CA684D9075 /* FinderTagsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86DCAA1AA5FC7068CA9E6243 /* FinderTagsTests.swift */; };
 		4DAA3E51C294C8918D268933 /* DetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F8C49819561928CB7E089AD /* DetailView.swift */; };
 		4F8C57796BDD138F4836BE30 /* ClipboardHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A4C8E3428B43D466D49E24 /* ClipboardHistory.swift */; };
@@ -325,6 +326,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D363CFCD5A0573E9FE879BB8 /* DropShelfCodecs in Frameworks */,
+				4BF9EA1D538B6F447F892B74 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -499,6 +501,7 @@
 			name = DropShelf;
 			packageProductDependencies = (
 				8E905C05BFF7E9416D36E218 /* DropShelfCodecs */,
+				3037DB6588F9942553C6535B /* Sparkle */,
 			);
 			productName = DropShelf;
 			productReference = 36C6D9A8793F1AFBA0FBC117 /* DropShelf.app */;
@@ -596,6 +599,7 @@
 			mainGroup = FBB1F7A0EA4112F12CAD963D;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				1D375355AE397C94A0620D8B /* XCRemoteSwiftPackageReference "Sparkle" */,
 				D01439A4BAA4DDD3F7F63DC6 /* XCLocalSwiftPackageReference "ThirdParty/DropShelfCodecs" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -913,6 +917,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.horn2208.DropShelf;
 				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) SPARKLE";
 			};
 			name = Debug;
 		};
@@ -1132,6 +1137,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.horn2208.DropShelf;
 				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) SPARKLE";
 			};
 			name = Release;
 		};
@@ -1214,7 +1220,23 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		1D375355AE397C94A0620D8B /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.10.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
+		3037DB6588F9942553C6535B /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1D375355AE397C94A0620D8B /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
 		6E2E7F1C942820E91BBAFFB3 /* DropShelfCodecs */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = DropShelfCodecs;

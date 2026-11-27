@@ -4,7 +4,7 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         FunEffects.registerDefaults()
-        UpdateManager.shared.checkOnLaunch()
+        UpdateManager.shared.start()
         #if DEBUG
         ShelfRecord.selfCheck()
         ShakeDetector.selfCheck()
@@ -135,7 +135,7 @@ struct DropShelfApp: App {
             }
             Divider()
             Button("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")") {}.disabled(true)
-            if let r = updates.available { Button("Neue Version \(r.version) verfügbar…") { updates.openRelease() } }
+            Button("Nach Updates suchen…") { updates.checkForUpdates() }.disabled(!updates.canCheck)
             Button("Über DropShelf…") { UserDefaults.standard.set(SettingsSection.about.rawValue, forKey: "settingsTab"); SettingsOpener.open() }
             Button("Einstellungen…") { SettingsOpener.open() }.keyboardShortcut(",")
             Divider()

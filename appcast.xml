@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>DropShelf</title>
+    <link>https://raw.githubusercontent.com/Horn2208/DropShelf/main/appcast.xml</link>
+    <description>Updates für DropShelf</description>
+    <language>de</language>
+  </channel>
+</rss>
