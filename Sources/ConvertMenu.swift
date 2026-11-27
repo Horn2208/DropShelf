@@ -427,7 +427,7 @@ struct NameField: View {
             ExtensionMenu(url: url, shelf: shelf, size: size, selected: pill).layoutPriority(1)
         }
         .padding(.horizontal, pill ? 4 : 0).padding(.vertical, pill ? 1 : 0)
-        .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(pill ? Color.accentColor : .clear))
+        .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(pill ? NordicCobalt.accent : .clear))
     }
 
     @ViewBuilder private func name(_ base: String) -> some View {

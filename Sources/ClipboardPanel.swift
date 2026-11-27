@@ -59,11 +59,7 @@ final class ClipboardPanel: NSPanel {
     }
 
     private func show() {
-        alphaValue = Motion.userOn ? 0 : 1
         makeKeyAndOrderFront(nil)
-        if Motion.userOn {
-            NSAnimationContext.runAnimationGroup { $0.duration = 0.2; $0.timingFunction = Motion.Curve.enter; self.animator().alphaValue = 1 }
-        }
         GlassKit.retintSoon(contentView)
         // Klick außerhalb (andere App): schließen.
         outsideClick = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
@@ -71,14 +67,11 @@ final class ClipboardPanel: NSPanel {
         }
     }
 
-    /// Ease-in 0,12 s, dann schließen.
+    /// Sofort schließen (wie der Ablage-Verlauf, kein Fade).
     func closeAnimated() {
         guard !closing else { return }
         closing = true
-        guard Motion.userOn else { close(); return }
-        NSAnimationContext.runAnimationGroup({ c in
-            c.duration = 0.12; c.timingFunction = Motion.Curve.exit; self.animator().alphaValue = 0
-        }, completionHandler: { MainActor.assumeIsolated { self.close() } })
+        close()
     }
 
     override func close() {
@@ -171,10 +164,6 @@ struct ClipboardView: View {
     @FocusState private var focus: Bool
     @Environment(\.colorScheme) private var scheme
 
-    private var openAnim: Animation? {
-        Motion.enabled ? .timingCurve(0.16, 1, 0.3, 1, duration: 0.2) : (Motion.userOn ? .easeOut(duration: 0.15) : nil)
-    }
-
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: Self.radius, style: .continuous)
         let list = model.visible(store.entries)
@@ -201,6 +190,9 @@ struct ClipboardView: View {
                                 ClipRow(entry: e, index: i, selected: model.selected == i, store: store, pick: pick)
                                     .id(e.id)
                                     .onHover { if $0 { model.selected = i } }
+                                    .opacity(appeared ? 1 : 0)
+                                    .offset(y: appeared ? 0 : 12)
+                                    .animation(Motion.smooth.map { $0.delay(Double(min(i, 8)) * 0.04) }, value: appeared)
                             }
                         }
                         .padding(.horizontal, 10).padding(.bottom, 10)
@@ -214,9 +206,8 @@ struct ClipboardView: View {
         .background { if !GlassKit.liquid { scheme == .dark ? Color.black.opacity(0.25) : Color.white.opacity(0.35) } }
         .clipShape(shape)
         .overlay { if !GlassKit.liquid { shape.strokeBorder(scheme == .dark ? Color.white.opacity(0.2) : Color.black.opacity(0.12), lineWidth: 1).allowsHitTesting(false) } }
-        .scaleEffect(appeared || !Motion.enabled ? 1 : 0.94, anchor: model.anchor)
-        .opacity(appeared ? 1 : 0)
-        .animation(openAnim, value: appeared)
+        .scaleEffect(appeared || !Motion.enabled ? 1 : 0.92, anchor: model.anchor)
+        .animation(Motion.pop, value: appeared)
         .onAppear { DispatchQueue.main.async { appeared = true; focus = true } }
         .onChange(of: model.query) { _ in model.selected = 0 }
         .onChange(of: list.count) { n in model.selected = min(model.selected, max(n - 1, 0)) }

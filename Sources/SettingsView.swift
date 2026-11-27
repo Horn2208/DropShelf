@@ -272,7 +272,7 @@ private struct Hero: View {
         .frame(maxWidth: .infinity).padding(.vertical, 28)
         .background {
             ZStack {
-                RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color(red: 0.04, green: 0.07, blue: 0.2).opacity(0.35))
+                RoundedRectangle(cornerRadius: 22, style: .continuous).fill(NordicCobalt.deep.opacity(0.35))
                 RadialGradient(colors: [NordicCobalt.accent.opacity(0.55), .clear],
                                center: .center, startRadius: 0, endRadius: 230)
             }
@@ -396,7 +396,7 @@ private struct GeneralPage: View {
     }
 
     private var startGroup: some View {
-        SettingsGroup(title: "Start", footer: error, footerColor: .red) {
+        SettingsGroup(title: "Start", footer: error, footerColor: NordicCobalt.error) {
             SettingsToggleRow(symbol: "power", title: "Beim Anmelden starten",
                               subtitle: "Status: \(loginText(login))",
                               isOn: Binding(get: { login == .enabled }, set: setLogin))
@@ -759,7 +759,7 @@ private struct ActionsPage: View {
         SettingsGroup(title: "Knöpfe unter der Ablage",
                       footer: full ? "Es sind höchstens \(ActionPrefs.maxActive) Aktionen gleichzeitig möglich – erst eine ausschalten."
                                    : "Reihenfolge per Ziehen ändern. Änderungen wirken sofort.",
-                      footerColor: full ? .orange : .secondary) {
+                      footerColor: full ? NordicCobalt.warning : .secondary) {
             List {
                 ForEach(prefs.ordered) { a in
                     let on = prefs.enabled.contains(a)
@@ -865,7 +865,7 @@ struct ShortcutRecorder: View {
 
 private enum PermState {
     case granted, denied, notNeeded
-    var color: Color { self == .granted ? .green : self == .denied ? .gray : .orange }
+    var color: Color { self == .granted ? NordicCobalt.success : self == .denied ? .gray : NordicCobalt.warning }
     var text: String { self == .granted ? "erteilt" : self == .denied ? "nicht erteilt" : "nicht nötig" }
 }
 

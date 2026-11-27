@@ -116,6 +116,8 @@ private struct PagesView: View {
                 }
             }
             .padding(12)
+            .nordicShimmer()
+            .background(alignment: .top) { Rectangle().fill(.clear).frame(height: 1).brushedMetal() }  // Metall-Akzent: feine Kante über der Bedienleiste
         }
     }
 }
@@ -136,7 +138,7 @@ private struct PageCell: View {
             Text("\(number)").font(.system(size: 11)).monospacedDigit()
                 .padding(.horizontal, 6).padding(.vertical, 1)
                 .foregroundStyle(selected ? Color.white : Color.primary)
-                .background(Capsule().fill(selected ? Color.accentColor : .clear))
+                .background(Capsule().fill(selected ? NordicCobalt.accent : .clear))
         }
         .padding(8)
         .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.primary.opacity(selected ? 0.14 : 0)))
@@ -260,7 +262,7 @@ private struct PageCell: View {
             w.releaseAccess()
             return alert("„\(url.lastPathComponent)“: \(error.localizedDescription)")
         }
-        let host = NSHostingController(rootView: root)
+        let host = NSHostingController(rootView: AnyView(root.milkyCobalt()))
         host.sizingOptions = []  // Größe bestimmt das Fenster, nicht der Inhalt
         let window = NSWindow(contentViewController: host)
         window.styleMask = [.titled, .closable, .resizable]
