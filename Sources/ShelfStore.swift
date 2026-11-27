@@ -84,6 +84,7 @@ final class Shelf: ObservableObject, Identifiable {
     let id: UUID
     @Published private(set) var items: [Item] = []
     @Published var expanded = false
+    @Published var renameRequest: URL?  // Aktionsknopf „Umbenennen“: `NameField` dieser Datei wechselt in die Bearbeitung
     @Published var selection = Selection()  // Finder-Auswahl in der Detail-Ansicht (nicht gespeichert)
     @Published var appeared = false  // Pop-Animation beim Öffnen
     @Published var closing = false

@@ -50,7 +50,7 @@ private struct ActionsView: View {
                 if visible || !GlassKit.liquid {
                     ForEach(Array(shown.enumerated()), id: \.element) { i, a in
                         // Beim Drag zählt, was gezogen wird (Dienst wird beim Ablegen geprüft), nicht der Ablage-Inhalt.
-                        let ok = shelf.dropping && a.acceptsDrop || a.canPerform(urls)
+                        let ok = shelf.dropping && a.acceptsDrop || a.canPerform(a.usesSelection ? shelf.actionTargets : urls)
                         button(a, ok: ok).opacity(GlassKit.liquid ? (ok ? 1 : 0.35) : (visible ? (ok ? 1 : 0.35) : 0))
                             .scaleEffect(GlassKit.liquid ? 1 : Motion.scale(0.5, on: visible))
                             .animation(Motion.pop.map { $0.delay(Double(i) * 0.03) }, value: visible)

@@ -3,6 +3,7 @@ import AppKit
 /// Verfügbare Aktionsknöpfe unter der Ablage. Reihenfolge/Auswahl: `ActionPrefs` (UserDefaults „enabledActions“).
 enum ShelfAction: String, CaseIterable, Identifiable {
     case airdrop, message, mail, share, quickLook, reveal, zip, copyPaths
+    case convert, edit, rename, clear, copy  // Standard: aus (siehe `ActionPrefs`)
     var id: String { rawValue }
 
     var symbol: String {
@@ -15,6 +16,11 @@ enum ShelfAction: String, CaseIterable, Identifiable {
         case .reveal: "folder"
         case .zip: "doc.zipper"
         case .copyPaths: "doc.on.doc"
+        case .convert: "arrow.triangle.2.circlepath"
+        case .edit: "slider.horizontal.3"
+        case .rename: "character.cursor.ibeam"
+        case .clear: "trash"
+        case .copy: "doc.on.clipboard"
         }
     }
     var title: String {
@@ -27,6 +33,11 @@ enum ShelfAction: String, CaseIterable, Identifiable {
         case .reveal: "Im Finder zeigen"
         case .zip: "Als ZIP"
         case .copyPaths: "Pfade kopieren"
+        case .convert: "Konvertieren"
+        case .edit: "Bearbeiten"
+        case .rename: "Umbenennen"
+        case .clear: "Shelf leeren"
+        case .copy: "Kopieren"
         }
     }
     var help: String {
@@ -52,10 +63,19 @@ enum ShelfAction: String, CaseIterable, Identifiable {
     /// ponytail: ein Eintrag pro Aktion; mehrere Ablagen im Wechsel rechnen neu, Dienst-Verfügbarkeit (z. B. Mail-Konto) erst bei neuer Liste.
     @MainActor private static var performCache: [ShelfAction: (urls: [URL], ok: Bool)] = [:]
 
+    /// Konvertieren, Bearbeiten, Umbenennen wirken auf die markierten Dateien (sonst alle): `Shelf.actionTargets`.
+    var usesSelection: Bool { self == .convert || self == .edit || self == .rename }
+
     @MainActor func canPerform(_ urls: [URL], check: (NSSharingService.Name, [URL]) -> Bool = {
         NSSharingService(named: $0)?.canPerform(withItems: $1) ?? false
     }) -> Bool {
         guard !urls.isEmpty else { return false }
+        switch self {
+        case .convert: return urls.count == 1 && !ConvertMenu.targets(for: urls[0]).isEmpty
+        case .edit: return !EditMenu.plan(urls).isEmpty
+        case .rename: return urls.count == 1
+        default: break
+        }
         guard let name = serviceName else { return true }
         if let c = Self.performCache[self], c.urls == urls { return c.ok }
         let ok = check(name, urls)
@@ -82,6 +102,24 @@ enum ShelfAction: String, CaseIterable, Identifiable {
         let all = shelf.items.map(\.url)
         let urls = dropped ?? all
         switch self {
+        case .convert, .edit:
+            let t = shelf.actionTargets
+            let item = self == .convert ? t.first.flatMap { ConvertMenu.menuItem(for: $0, shelf: shelf) } : EditMenu.menuItem(for: t, shelf: shelf)
+            guard t.count == 1 || self == .edit, let sub = item?.submenu, let view = anchor, let win = view.window else { return NSSound.beep() }
+            sub.popUp(positioning: nil, at: view.convert(win.mouseLocationOutsideOfEventStream, from: nil), in: view)
+        case .rename:
+            if let u = shelf.actionTargets.first { shelf.renameRequest = u }
+        case .clear:
+            NSApp.activate(ignoringOtherApps: true)
+            let a = NSAlert()
+            a.messageText = "Shelf leeren?"
+            a.informativeText = "Alle \(all.count) Einträge werden aus dem Shelf entfernt. Die Originaldateien bleiben unverändert."
+            a.addButton(withTitle: "Abbrechen")  // Standard
+            a.addButton(withTitle: "Leeren")
+            if a.runModal() == .alertSecondButtonReturn { shelf.remove(all) }
+        case .copy:
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.writeObjects(urls as [NSURL])
         case .airdrop:
             // „Ablage leeren?“ nur, wenn wirklich die ganze Ablage gesendet wird.
             let whole = Set(urls.map(Shelf.canonical)) == Set(all.map(Shelf.canonical))
@@ -153,4 +191,12 @@ final class ActionPrefs: ObservableObject {
 
     /// Aktive zuerst (in Reihenfolge), danach die übrigen.
     var ordered: [ShelfAction] { enabled + ShelfAction.allCases.filter { !enabled.contains($0) } }
+}
+
+extension Shelf {
+    /// Ziel für Konvertieren/Bearbeiten/Umbenennen: markierte Dateien in Anzeigereihenfolge, ohne Markierung alle.
+    var actionTargets: [URL] {
+        selection.ids.isEmpty ? items.map(\.url)
+            : selection.order.filter(selection.ids.contains).compactMap { id in items.first { $0.id == id }?.url }
+    }
 }
