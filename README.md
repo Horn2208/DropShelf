@@ -1,12 +1,29 @@
 <p align="center">
-  <img src="Resources/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width="128" alt="DropShelf icon">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/banner-dark.png">
+    <img src="docs/banner-light.png" width="640" alt="DropShelf banner">
+  </picture>
 </p>
 
 <h1 align="center">DropShelf</h1>
 
-<p align="center">A floating shelf for macOS to temporarily park files, images, text and links.</p>
+<p align="center">
+  A floating shelf for macOS to temporarily park files, images, text and links.<br>
+  Drop things onto it, then drag them out again or send them off.
+</p>
 
-DropShelf is a small macOS menu bar app. Drop things onto a floating shelf, then drag them out again somewhere else or send them off.
+<p align="center">
+  <a href="https://github.com/Horn2208/DropShelf/releases"><img src="https://img.shields.io/github/v/release/Horn2208/DropShelf?label=release&color=2563EB" alt="Latest release"></a>
+  <a href="https://github.com/Horn2208/DropShelf/releases"><img src="https://img.shields.io/github/downloads/Horn2208/DropShelf/total?color=2563EB" alt="Downloads"></a>
+  <a href="#requirements"><img src="https://img.shields.io/badge/macOS-14%2B-black" alt="macOS 14 and newer"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue" alt="License PolyForm Noncommercial 1.0.0"></a>
+</p>
+
+DropShelf is a small macOS menu bar app. Drop things onto a floating shelf, then drag them out again somewhere else or send them off. Free for noncommercial use, no account, no subscription.
+
+## Install
+
+Download the DMG from the [Releases](https://github.com/Horn2208/DropShelf/releases) page and drag DropShelf to `/Applications`. The app is not notarized, so on first launch right-click it and choose Open, or allow it under System Settings › Privacy & Security.
 
 ## Features
 
@@ -46,13 +63,18 @@ Shortcuts can be re-recorded under Settings › Shortcuts (they need at least �
 - The app makes one kind of network request: it checks the GitHub releases page for a newer version, at most once a day at launch. You can turn this off in Settings › General ("Automatisch nach Updates suchen"), or check manually. A new DMG is only downloaded when you click the download button.
 - The DMG is ad-hoc signed and not notarized. Build from source if you prefer.
 
-## Install
-
-Download the DMG from the [Releases](https://github.com/Horn2208/DropShelf/releases) page and drag DropShelf to `/Applications`. The app is not notarized, so on first launch right-click it and choose Open, or allow it under System Settings › Privacy & Security.
-
 ## Updates
 
 On launch (at most once a day) and on demand, DropShelf checks GitHub for a newer release and offers to open the release page or download the DMG into your Downloads folder. The automatic check can be turned off in Settings.
+
+## Permissions
+
+- **Accessibility**: only for shake detection (it reads mouse movement only). Everything else works without it.
+- Keyboard shortcuts need no permission.
+
+## Sandbox
+
+DropShelf runs in the App Sandbox. File access goes through files the user dropped and security-scoped bookmarks, so shelves survive a restart. The only network access is the update check against GitHub. Audio and image conversion use statically linked open-source codec libraries (Ogg/Vorbis, Opus, FLAC, LAME, WebP, WavPack); see [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
 
 ## Build from source
 
@@ -64,15 +86,6 @@ xcodebuild -project DropShelf.xcodeproj -scheme DropShelf -configuration Release
 The app ends up in `build/Build/Products/Release/DropShelf.app`. For launch at login to work reliably, copy it to `/Applications`. The icon can be regenerated with `swift scripts/make-icon.swift`.
 
 The "Troll" build variants use a bundled sound and image that are not included in this repository, so those targets do not build from a clone.
-
-## Permissions
-
-- **Accessibility**: only for shake detection (it reads mouse movement only). Everything else works without it.
-- Keyboard shortcuts need no permission.
-
-## Sandbox
-
-DropShelf runs in the App Sandbox. File access goes through files the user dropped and security-scoped bookmarks, so shelves survive a restart. The only network access is the update check against GitHub. Audio and image conversion use statically linked open-source codec libraries (Ogg/Vorbis, Opus, FLAC, LAME, WebP, WavPack); see [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
 
 ## License
 
