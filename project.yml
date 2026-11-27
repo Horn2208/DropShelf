@@ -43,6 +43,7 @@ targets:
         SUPublicEDKey: "RTSyLJoLFyuuCyTbkZmlnJuzWX+31nFiQ8xiTnJspgs="
         SUEnableAutomaticChecks: true
         SUEnableInstallerLauncherService: true
+        NSAppleEventsUsageDescription: DropShelf liest die Auswahl im Finder, um Dateien ins Shelf zu legen.
     entitlements:
       path: DropShelf.entitlements
       properties:
@@ -51,6 +52,10 @@ targets:
         com.apple.security.files.bookmarks.app-scope: true
         com.apple.security.network.client: true
         com.apple.security.files.downloads.read-write: true
+        com.apple.security.temporary-exception.apple-events:
+          - com.apple.finder
+        com.apple.security.temporary-exception.files.absolute-path.read-only:
+          - /
         com.apple.security.temporary-exception.mach-lookup.global-name:
           - $(PRODUCT_BUNDLE_IDENTIFIER)-spks
           - $(PRODUCT_BUNDLE_IDENTIFIER)-spki
@@ -82,6 +87,7 @@ targets:
         SUPublicEDKey: "RTSyLJoLFyuuCyTbkZmlnJuzWX+31nFiQ8xiTnJspgs="
         SUEnableAutomaticChecks: true
         SUEnableInstallerLauncherService: true
+        NSAppleEventsUsageDescription: DropShelf liest die Auswahl im Finder, um Dateien ins Shelf zu legen.
     entitlements:
       path: DropShelf.entitlements
       properties:
@@ -90,6 +96,10 @@ targets:
         com.apple.security.files.bookmarks.app-scope: true
         com.apple.security.network.client: true
         com.apple.security.files.downloads.read-write: true
+        com.apple.security.temporary-exception.apple-events:
+          - com.apple.finder
+        com.apple.security.temporary-exception.files.absolute-path.read-only:
+          - /
         com.apple.security.temporary-exception.mach-lookup.global-name:
           - $(PRODUCT_BUNDLE_IDENTIFIER)-spks
           - $(PRODUCT_BUNDLE_IDENTIFIER)-spki
@@ -122,6 +132,7 @@ targets:
         SUPublicEDKey: "RTSyLJoLFyuuCyTbkZmlnJuzWX+31nFiQ8xiTnJspgs="
         SUEnableAutomaticChecks: true
         SUEnableInstallerLauncherService: true
+        NSAppleEventsUsageDescription: DropShelf liest die Auswahl im Finder, um Dateien ins Shelf zu legen.
     entitlements:
       path: DropShelf.entitlements
       properties:
@@ -130,6 +141,10 @@ targets:
         com.apple.security.files.bookmarks.app-scope: true
         com.apple.security.network.client: true
         com.apple.security.files.downloads.read-write: true
+        com.apple.security.temporary-exception.apple-events:
+          - com.apple.finder
+        com.apple.security.temporary-exception.files.absolute-path.read-only:
+          - /
         com.apple.security.temporary-exception.mach-lookup.global-name:
           - $(PRODUCT_BUNDLE_IDENTIFIER)-spks
           - $(PRODUCT_BUNDLE_IDENTIFIER)-spki
