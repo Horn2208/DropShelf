@@ -9,6 +9,10 @@ settings:
 packages:
   DropShelfCodecs:
     path: ThirdParty/DropShelfCodecs
+  # Einzige Fremd-Bibliothek (Ausnahme laut PLAN.md): In-App-Updates.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.10.1"
 targets:
   DropShelf:
     type: application
@@ -26,6 +30,8 @@ targets:
     dependencies:
       - package: DropShelfCodecs
         product: DropShelfCodecs
+      - package: Sparkle
+        product: Sparkle
     info:
       path: Info.plist
       properties:
@@ -33,6 +39,10 @@ targets:
         CFBundleName: DropShelf
         CFBundleShortVersionString: "3.1"
         CFBundleVersion: "3"
+        SUFeedURL: https://raw.githubusercontent.com/Horn2208/DropShelf/main/appcast.xml
+        SUPublicEDKey: ""  # auf dem Release-Mac mit Sparkles generate_keys erzeugen und eintragen
+        SUEnableAutomaticChecks: true
+        SUEnableInstallerLauncherService: true
     entitlements:
       path: DropShelf.entitlements
       properties:
@@ -41,9 +51,13 @@ targets:
         com.apple.security.files.bookmarks.app-scope: true
         com.apple.security.network.client: true
         com.apple.security.files.downloads.read-write: true
+        com.apple.security.temporary-exception.mach-lookup.global-name:
+          - $(PRODUCT_BUNDLE_IDENTIFIER)-spks
+          - $(PRODUCT_BUNDLE_IDENTIFIER)-spki
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.horn2208.DropShelf
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) SPARKLE"
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: "-"
         ENABLE_HARDENED_RUNTIME: NO
@@ -64,6 +78,10 @@ targets:
         CFBundleName: DropShelf
         CFBundleShortVersionString: "3.1"
         CFBundleVersion: "3"
+        SUFeedURL: https://raw.githubusercontent.com/Horn2208/DropShelf/main/appcast.xml
+        SUPublicEDKey: ""  # auf dem Release-Mac mit Sparkles generate_keys erzeugen und eintragen
+        SUEnableAutomaticChecks: true
+        SUEnableInstallerLauncherService: true
     entitlements:
       path: DropShelf.entitlements
       properties:
@@ -72,6 +90,9 @@ targets:
         com.apple.security.files.bookmarks.app-scope: true
         com.apple.security.network.client: true
         com.apple.security.files.downloads.read-write: true
+        com.apple.security.temporary-exception.mach-lookup.global-name:
+          - $(PRODUCT_BUNDLE_IDENTIFIER)-spks
+          - $(PRODUCT_BUNDLE_IDENTIFIER)-spki
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.horn2208.DropShelf.troll
@@ -97,6 +118,10 @@ targets:
         CFBundleName: DropShelf
         CFBundleShortVersionString: "3.1"
         CFBundleVersion: "3"
+        SUFeedURL: https://raw.githubusercontent.com/Horn2208/DropShelf/main/appcast.xml
+        SUPublicEDKey: ""  # auf dem Release-Mac mit Sparkles generate_keys erzeugen und eintragen
+        SUEnableAutomaticChecks: true
+        SUEnableInstallerLauncherService: true
     entitlements:
       path: DropShelf.entitlements
       properties:
@@ -105,6 +130,9 @@ targets:
         com.apple.security.files.bookmarks.app-scope: true
         com.apple.security.network.client: true
         com.apple.security.files.downloads.read-write: true
+        com.apple.security.temporary-exception.mach-lookup.global-name:
+          - $(PRODUCT_BUNDLE_IDENTIFIER)-spks
+          - $(PRODUCT_BUNDLE_IDENTIFIER)-spki
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.horn2208.DropShelf.trollkurz
