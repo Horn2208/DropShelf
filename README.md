@@ -75,12 +75,13 @@ Shortcuts can be re-recorded under Settings › Shortcuts (they need at least �
 - Entries that password managers mark as concealed or transient are skipped, and copies from the Passwords app and Keychain Access are always ignored. Passwords copied from sources that don't mark them, such as notes or some browser extensions, may still be recorded. Use "Pause 5 minutes" in Settings in that case.
 - The history is excluded from backups and can be cleared in Settings.
 - The Accessibility permission is optional. It is only needed for pasting directly into the previous app when you pick a history entry, and for shake-to-open. Without it, picking an entry just copies it.
-- The app makes one kind of network request: it checks the GitHub releases page for a newer version, at most once a day at launch. You can turn this off in Settings › General ("Automatisch nach Updates suchen"), or check manually. A new DMG is only downloaded when you click the download button.
+- The app makes one kind of network request for updates: Sparkle reads the update feed (`appcast.xml`) from GitHub, at most once a day at launch. You can turn this off in Settings › General ("Automatisch nach Updates suchen"), or check manually. An update is only downloaded and installed after you confirm it.
+- Updates are checked against an EdDSA signature (`SUPublicEDKey` in `Info.plist`) before they are installed.
 - The DMG is ad-hoc signed and not notarized. Build from source if you prefer.
 
 ## Updates
 
-On launch (at most once a day) and on demand, DropShelf checks GitHub for a newer release and offers to open the release page or download the DMG into your Downloads folder. The automatic check can be turned off in Settings.
+DropShelf updates itself with [Sparkle](https://sparkle-project.org). On launch (at most once a day, if enabled) it checks for a newer version. You can also check at any time under Settings › General › "Jetzt prüfen". Sparkle shows the release notes, downloads the update and installs it after you confirm.
 
 ## Permissions
 
