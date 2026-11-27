@@ -19,6 +19,11 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue" alt="License PolyForm Noncommercial 1.0.0"></a>
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/shelf-empty.png" width="300" alt="Empty shelf with the prompt to drag files here">
+  <img src="docs/screenshots/history-empty.png" width="300" alt="Empty history panel">
+</p>
+
 DropShelf is a small macOS menu bar app. Drop things onto a floating shelf, then drag them out again somewhere else or send them off. Free for noncommercial use, no account, no subscription.
 
 ## Install
