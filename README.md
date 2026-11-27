@@ -38,7 +38,7 @@ DropShelf is a small macOS menu bar app. Drop things onto a floating shelf, then
 
 ## Install
 
-Download the DMG from the [Releases](https://github.com/Horn2208/DropShelf/releases) page and drag DropShelf to `/Applications`. The app is not notarized, so on first launch right-click it and choose Open, or allow it under System Settings › Privacy & Security.
+Download the DMG from the [Releases](https://github.com/Horn2208/DropShelf/releases) page and drag DropShelf to `/Applications`. The app is signed with a Developer ID and notarized by Apple, so it opens normally.
 
 ## Features
 
@@ -77,7 +77,7 @@ Shortcuts can be re-recorded under Settings › Shortcuts (they need at least �
 - The Accessibility permission is optional. It is only needed for pasting directly into the previous app when you pick a history entry, and for shake-to-open. Without it, picking an entry just copies it.
 - The app makes one kind of network request for updates: Sparkle reads the update feed (`appcast.xml`) from GitHub, at most once a day at launch. You can turn this off in Settings › General ("Automatisch nach Updates suchen"), or check manually. An update is only downloaded and installed after you confirm it.
 - Updates are checked against an EdDSA signature (`SUPublicEDKey` in `Info.plist`) before they are installed.
-- The DMG is ad-hoc signed and not notarized. Build from source if you prefer.
+- The app and DMG are signed with a Developer ID and notarized by Apple. Build from source if you prefer.
 
 ## Updates
 

@@ -5,5 +5,13 @@
     <link>https://raw.githubusercontent.com/Horn2208/DropShelf/main/appcast.xml</link>
     <description>Updates für DropShelf</description>
     <language>de</language>
+    <item>
+      <title>Version 3.2</title>
+      <pubDate>Fri, 27 Nov 2026 22:11:11 +0000</pubDate>
+      <sparkle:version>4</sparkle:version>
+      <sparkle:shortVersionString>3.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/Horn2208/DropShelf/releases/download/v3.2/DropShelf-3.2.zip" length="6513231" type="application/octet-stream" sparkle:edSignature="X9/MAEBoX/S9e4qgagik+ZQbMdcDhsD3g8g7Kpg/jGEd0A5Ruquxt0QDEVeBysNXH7jDSOu+5KV4hdsK3wdNBw=="/>
+    </item>
   </channel>
 </rss>
