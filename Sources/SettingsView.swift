@@ -379,9 +379,15 @@ private struct GeneralPage: View {
     private var profileGroup: some View {
         SettingsGroup(title: "Profil") {
             NameBadge().frame(maxWidth: .infinity)
-            SettingsRow(symbol: "person", title: "Dein Name") {
-                TextField("Dein Name", text: $name).textFieldStyle(.roundedBorder).frame(width: 200)
+            VStack(spacing: 8) {
+                Label("Klick die Karte, um sie zu drehen", systemImage: "arrow.triangle.2.circlepath")
+                    .font(.system(size: 12)).foregroundStyle(.secondary)
+                Text("SCHREIB DEINEN NAMEN DRAUF").font(.system(size: 11, weight: .semibold)).tracking(1.5)
+                TextField("Dein Name", text: $name).textFieldStyle(.plain).multilineTextAlignment(.center)
+                    .padding(.vertical, 7).padding(.horizontal, 14).frame(width: 240)
+                    .background(Color.primary.opacity(0.08), in: Capsule())
             }
+            .padding(.bottom, 16)
         }
     }
 
