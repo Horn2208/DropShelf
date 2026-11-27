@@ -82,7 +82,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     func matches(_ q: String) -> Bool { q.isEmpty || title.localizedStandardContains(q) || keywords.localizedStandardContains(q) }
 }
 
-private let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
 
 private struct QueryKey: EnvironmentKey { static let defaultValue = "" }
 private extension EnvironmentValues {
@@ -370,10 +370,20 @@ private struct GeneralPage: View {
     @State private var login = SMAppService.mainApp.status
     @State private var error: String?
     @AppStorage(UpdateManager.autoKey) private var autoUpdate = true
+    @AppStorage(NameBadge.nameKey) private var name = ""
     @ObservedObject private var updates = UpdateManager.shared
 
     var body: some View {
-        VStack(spacing: 20) { startGroup; updateGroup }
+        VStack(spacing: 20) { profileGroup; startGroup; updateGroup }
+    }
+
+    private var profileGroup: some View {
+        SettingsGroup(title: "Profil") {
+            NameBadge().frame(maxWidth: .infinity)
+            SettingsRow(symbol: "person", title: "Dein Name") {
+                TextField("Dein Name", text: $name).textFieldStyle(.roundedBorder).frame(width: 200)
+            }
+        }
     }
 
     private var updateGroup: some View {
