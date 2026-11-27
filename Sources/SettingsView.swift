@@ -249,7 +249,7 @@ private struct SettingsPage<Content: View>: View {
                     Text(section.title).font(.system(size: 30, weight: .bold))
                 }
                 .padding(.top, 44)
-                if section == .general { Hero() }
+                if section == .about { Hero() }
                 content
             }
             .padding(.horizontal, 28).padding(.bottom, 28)
@@ -283,7 +283,7 @@ private struct Hero: View {
 
 /// Gruppe: grauer Titel oberhalb, Karte, optionale Fußnote darunter.
 private struct SettingsGroup<Content: View>: View {
-    var title: String?
+    var title: String? = nil
     var footer: String?
     var footerColor: Color = .secondary
     @ViewBuilder let content: Content
@@ -377,7 +377,7 @@ private struct GeneralPage: View {
     }
 
     private var profileGroup: some View {
-        SettingsGroup(title: "Profil") {
+        SettingsGroup {
             NameBadge().frame(maxWidth: .infinity)
             VStack(spacing: 8) {
                 Label("Klick die Karte, um sie zu drehen", systemImage: "arrow.triangle.2.circlepath")

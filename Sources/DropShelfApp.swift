@@ -31,6 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         debugLaunchArgs()
         #endif
         launched = true
+        WelcomeWindow.showIfNeeded()
         if !pendingOpen.isEmpty { addToShelf(pendingOpen); pendingOpen = [] }
     }
 
