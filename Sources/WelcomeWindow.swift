@@ -4,8 +4,13 @@ import AppKit
 /// Einmalige Namensabfrage beim ersten Start (nur wenn noch kein Name gesetzt ist).
 @MainActor
 enum WelcomeWindow {
-    private static let askedKey = "didAskForName"
-    private static var window: NSWindow?
+    /// Schließen über das rote „x“ zählt wie „Später“ (Name bleibt, wie getippt).
+    private final class Closer: NSObject, NSWindowDelegate {
+        func windowWillClose(_ n: Notification) { UserDefaults.standard.set(true, forKey: WelcomeWindow.askedKey); WelcomeWindow.window = nil }
+    }
+    private static let closer = Closer()
+    fileprivate static let askedKey = "didAskForName"
+    fileprivate static var window: NSWindow?
 
     static func showIfNeeded() {
         let d = UserDefaults.standard
@@ -18,6 +23,7 @@ enum WelcomeWindow {
         w.title = "Willkommen"
         w.setContentSize(NSSize(width: 400, height: 580))
         w.isReleasedWhenClosed = false
+        w.delegate = closer
         w.level = .floating
         w.center()
         window = w
@@ -26,9 +32,7 @@ enum WelcomeWindow {
     }
 
     private static func close() {
-        UserDefaults.standard.set(true, forKey: askedKey)
-        window?.close()
-        window = nil
+        window?.close()  // Delegate setzt didAskForName
     }
 }
 
