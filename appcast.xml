@@ -6,6 +6,15 @@
     <description>Updates für DropShelf</description>
     <language>de</language>
     <item>
+      <title>Version 3.3.1</title>
+      <pubDate>Fri, 27 Nov 2026 22:29:16 +0000</pubDate>
+      <description><![CDATA[<ul><li>Welcome window on first launch to enter your name</li><li>General tab now shows only the name card; app icon and version moved to About</li></ul>]]></description>
+      <sparkle:version>6</sparkle:version>
+      <sparkle:shortVersionString>3.3.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/Horn2208/DropShelf/releases/download/v3.3.1/DropShelf-3.3.1.zip" length="6685449" type="application/octet-stream" sparkle:edSignature="T+Mj9UjrwKPrXRyserga+2rNqXEd7tryakh3ZfsYN4aDU67QmQyhsRHPisdzvP61sOdekSMyCTYcz68N+cnzCg=="/>
+    </item>
+    <item>
       <title>Version 3.3</title>
       <pubDate>Fri, 27 Nov 2026 22:17:17 +0000</pubDate>
       <description><![CDATA[<ul><li>Milky glass look in the editing windows</li><li>New control bar in the image window</li><li>Name badge in the General tab: drag it, let it swing, flip it</li></ul>]]></description>
