@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 
 /// Reine Logik: Finder-Auswahl und Namensprüfung beim Inline-Umbenennen (ohne Dateien, ohne Shelf).
@@ -77,5 +78,24 @@ final class SelectionTests: XCTestCase {
         XCTAssertNil(step("a.txt", "A", taken: ["a.txt", "A.txt"]).problem)
         let same = step("a.txt", "a", taken: ["a.txt"])
         XCTAssertNil(same.problem); XCTAssertEqual(same.new, same.old)
+    }
+}
+
+/// Aktionsleiste: teure Dienst-Prüfung nur bei neuer URL-Liste (sonst ruckelt jedes Neuzeichnen beim Hinzufügen).
+@MainActor
+final class ShelfActionCanPerformTests: XCTestCase {
+    func testServiceCheckIsCachedPerURLList() {
+        var calls = 0
+        let check: (NSSharingService.Name, [URL]) -> Bool = { _, _ in calls += 1; return true }
+        let a = [URL(fileURLWithPath: "/tmp/\(UUID()).txt")]
+        let b = a + [URL(fileURLWithPath: "/tmp/\(UUID()).png")]
+        XCTAssertTrue(ShelfAction.mail.canPerform(a, check: check))
+        XCTAssertTrue(ShelfAction.mail.canPerform(a, check: check))
+        XCTAssertEqual(calls, 1, "gleiche Liste: aus dem Speicher")
+        XCTAssertTrue(ShelfAction.mail.canPerform(b, check: check))
+        XCTAssertEqual(calls, 2, "neue Liste: neu prüfen")
+        XCTAssertFalse(ShelfAction.mail.canPerform([], check: check))
+        XCTAssertTrue(ShelfAction.zip.canPerform(a, check: check))
+        XCTAssertEqual(calls, 2, "leere Liste und Aktionen ohne Dienst prüfen nie")
     }
 }

@@ -15,7 +15,8 @@ targets:
     platform: macOS
     sources:
       - Sources
-      - Resources
+      - path: Resources
+        excludes: [dmg]  # DMG-Hintergrund gehört nicht ins App-Bundle
       - path: THIRD-PARTY-LICENSES.md
         buildPhase: resources
       - path: LICENSE
@@ -30,7 +31,7 @@ targets:
       properties:
         LSUIElement: true
         CFBundleName: DropShelf
-        CFBundleShortVersionString: "0.3"
+        CFBundleShortVersionString: "3.1"
         CFBundleVersion: "3"
     entitlements:
       path: DropShelf.entitlements
@@ -52,7 +53,7 @@ targets:
   DropShelf Troll:
     type: application
     platform: macOS
-    sources: [Sources, Resources, Troll]
+    sources: [Sources, {path: Resources, excludes: [dmg]}, Troll]
     dependencies:
       - package: DropShelfCodecs
         product: DropShelfCodecs
@@ -61,7 +62,7 @@ targets:
       properties:
         LSUIElement: true
         CFBundleName: DropShelf
-        CFBundleShortVersionString: "0.3"
+        CFBundleShortVersionString: "3.1"
         CFBundleVersion: "3"
     entitlements:
       path: DropShelf.entitlements
@@ -85,7 +86,7 @@ targets:
   DropShelf Troll kurz:
     type: application
     platform: macOS
-    sources: [Sources, Resources, Troll]
+    sources: [Sources, {path: Resources, excludes: [dmg]}, Troll]
     dependencies:
       - package: DropShelfCodecs
         product: DropShelfCodecs
@@ -94,7 +95,7 @@ targets:
       properties:
         LSUIElement: true
         CFBundleName: DropShelf
-        CFBundleShortVersionString: "0.3"
+        CFBundleShortVersionString: "3.1"
         CFBundleVersion: "3"
     entitlements:
       path: DropShelf.entitlements

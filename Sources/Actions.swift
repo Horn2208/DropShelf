@@ -46,10 +46,21 @@ enum ShelfAction: String, CaseIterable, Identifiable {
         }
     }
 
-    @MainActor func canPerform(_ urls: [URL]) -> Bool {
+    /// Die Aktionsleiste fragt das bei jedem Neuzeichnen (jede Ablage-Änderung, Hover, Drag) für alle Knöpfe ab.
+    /// `NSSharingService.canPerform` kostet auf dem Main-Thread ~15–20 ms bei 20–60 Dateien (AirDrop kalt >100 ms):
+    /// darum Ergebnis merken, neu gerechnet wird nur bei anderer URL-Liste.
+    /// ponytail: ein Eintrag pro Aktion; mehrere Ablagen im Wechsel rechnen neu, Dienst-Verfügbarkeit (z. B. Mail-Konto) erst bei neuer Liste.
+    @MainActor private static var performCache: [ShelfAction: (urls: [URL], ok: Bool)] = [:]
+
+    @MainActor func canPerform(_ urls: [URL], check: (NSSharingService.Name, [URL]) -> Bool = {
+        NSSharingService(named: $0)?.canPerform(withItems: $1) ?? false
+    }) -> Bool {
         guard !urls.isEmpty else { return false }
         guard let name = serviceName else { return true }
-        return NSSharingService(named: name)?.canPerform(withItems: urls) ?? false
+        if let c = Self.performCache[self], c.urls == urls { return c.ok }
+        let ok = check(name, urls)
+        Self.performCache[self] = (urls, ok)
+        return ok
     }
 
     /// Per Drag auf den Knopf: nur Senden/Teilen (AirDrop, Nachrichten, Mail, Teilen); genau die abgelegten Dateien.

@@ -163,9 +163,12 @@ final class UpdateManager: ObservableObject {
         downloadProgress = nil
         switch outcome {
         case .success(let dmg):
-            downloadStatus = NSWorkspace.shared.open(dmg)
+            let opened = NSWorkspace.shared.open(dmg)
+            downloadStatus = opened
                 ? "DMG geöffnet – DropShelf in den Programme-Ordner ziehen, dann neu starten"
                 : "DMG in „Downloads“ gespeichert, konnte aber nicht geöffnet werden"
+            // App beendet sich, damit der Nutzer das Ersetzen im Finder starten kann.
+            if opened { NSApp.terminate(nil) }
         case .failure(let f): downloadStatus = f.message
         }
     }
