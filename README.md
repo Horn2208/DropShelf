@@ -25,6 +25,11 @@
   <img src="docs/screenshots/clipboard-empty.png" width="300" alt="Empty clipboard history with search field">
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/share-menu.png" width="300" alt="Share menu for a test spreadsheet file">
+  <img src="docs/screenshots/clipboard-filled.png" width="300" alt="Clipboard history with sample text entries">
+</p>
+
 DropShelf is a small macOS menu bar app. Drop things onto a floating shelf, then drag them out again somewhere else or send them off. Free for noncommercial use, no account, no subscription.
 
 ## Install
