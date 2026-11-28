@@ -6,6 +6,15 @@
     <description>Updates für DropShelf</description>
     <language>de</language>
     <item>
+      <title>Version 3.3.2</title>
+      <pubDate>Sat, 28 Nov 2026 09:27:09 +0000</pubDate>
+      <description><![CDATA[<ul><li>Name card now hangs on a real rope: grab the card or the lanyard, drag and throw it</li><li>Card tilts towards the mouse; click to flip it</li><li>Pull it far to the right and it spins a full 360°</li></ul>]]></description>
+      <sparkle:version>7</sparkle:version>
+      <sparkle:shortVersionString>3.3.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/Horn2208/DropShelf/releases/download/v3.3.2/DropShelf-3.3.2.zip" sparkle:edSignature="PpG0Q3vuTWlmkQZ0bOyBld2lglCFNW7tIhBrXE4bh9e7aWt0TigzKK7UN1NoFGMFK6AcH5M7ZbcwjjKsGZ9hCg==" length="6707736" type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 3.3.1</title>
       <pubDate>Fri, 27 Nov 2026 22:29:16 +0000</pubDate>
       <description><![CDATA[<ul><li>Welcome window on first launch to enter your name</li><li>General tab now shows only the name card; app icon and version moved to About</li></ul>]]></description>
