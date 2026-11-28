@@ -35,7 +35,8 @@ final class ClipboardPanel: NSPanel {
 
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
-    override func becomeKey() { super.becomeKey(); refreshGlassShadow() }
+    private var glass: NSView?
+    override func becomeKey() { super.becomeKey(); GlassKit.retintSoon(glass) }  // wie die Ablagen: Glas nach Schlüssel-Wechsel neu tönen
 
     private init(at mouse: CGPoint, previous: NSRunningApplication?) {
         self.mouse = mouse
@@ -44,7 +45,7 @@ final class ClipboardPanel: NSPanel {
         let s = Self.size
         let origin = CGPoint(x: min(max(mouse.x - s.width / 2, vf.minX + 8), vf.maxX - s.width - 8),
                              y: min(max(mouse.y - s.height + 40, vf.minY + 8), vf.maxY - s.height - 8))
-        super.init(contentRect: NSRect(origin: origin, size: s), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        super.init(contentRect: NSRect(origin: origin, size: s).insetBy(dx: -RoundGlassHost.margin, dy: -RoundGlassHost.margin), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         model.anchor = UnitPoint(x: min(max((mouse.x - origin.x) / s.width, 0), 1), y: min(max(1 - (mouse.y - origin.y) / s.height, 0), 1))
         level = .floating
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -52,20 +53,14 @@ final class ClipboardPanel: NSPanel {
         isReleasedWhenClosed = false
         isOpaque = false
         backgroundColor = .clear
-        hasShadow = true
         let host = NSHostingView(rootView: ClipboardView(model: model, pick: { [weak self] in self?.paste($0) }))
-        contentView = GlassKit.wrap(host, radius: ClipboardView.radius)
-        contentView?.wantsLayer = true  // Fensterfläche durchsichtig, Ecken rund: keine eckige Fläche unter dem Glas
-        contentView?.layer?.backgroundColor = .clear
-        contentView?.layer?.cornerRadius = ClipboardView.radius
-        contentView?.layer?.cornerCurve = .continuous
-        GlassKit.retint(contentView)
-        refreshGlassShadow()
+        glass = RoundGlassHost.install(host, radius: ClipboardView.radius, in: self)
+        GlassKit.retint(glass)
     }
 
     private func show() {
         makeKeyAndOrderFront(nil)
-        GlassKit.retintSoon(contentView)
+        GlassKit.retintSoon(glass)
         // Klick außerhalb (andere App): schließen.
         outsideClick = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
             MainActor.assumeIsolated { self?.closeAnimated() }

@@ -26,7 +26,8 @@ final class HistoryPanel: NSPanel {
 
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
-    override func becomeKey() { super.becomeKey(); refreshGlassShadow() }
+    private var glass: NSView?
+    override func becomeKey() { super.becomeKey(); GlassKit.retintSoon(glass) }  // wie die Ablagen: Glas nach Schlüssel-Wechsel neu tönen
 
     private init(at mouse: CGPoint) {
         self.mouse = mouse
@@ -34,7 +35,7 @@ final class HistoryPanel: NSPanel {
         let s = Self.size
         let origin = CGPoint(x: min(max(mouse.x - s.width / 2, vf.minX + 8), vf.maxX - s.width - 8),
                              y: min(max(mouse.y - s.height + 40, vf.minY + 8), vf.maxY - s.height - 8))
-        super.init(contentRect: NSRect(origin: origin, size: s), styleMask: [.borderless, .nonactivatingPanel],
+        super.init(contentRect: NSRect(origin: origin, size: s).insetBy(dx: -RoundGlassHost.margin, dy: -RoundGlassHost.margin), styleMask: [.borderless, .nonactivatingPanel],
                    backing: .buffered, defer: false)
         level = .floating
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -42,17 +43,11 @@ final class HistoryPanel: NSPanel {
         isReleasedWhenClosed = false
         isOpaque = false
         backgroundColor = .clear
-        hasShadow = true
         let host = NSHostingView(rootView: HistoryView(model: model, restore: { [weak self] in self?.restore($0) },
                                                        airDrop: { [weak self] in self?.close(); AirDropSender.shared.send(shelf: nil, urls: $0.urls) },
                                                        clear: { [weak self] in self?.confirmClear() }))
-        contentView = GlassKit.wrap(host, radius: HistoryView.radius)
-        contentView?.wantsLayer = true  // Fensterfläche durchsichtig, Ecken rund: keine eckige Fläche unter dem Glas
-        contentView?.layer?.backgroundColor = .clear
-        contentView?.layer?.cornerRadius = HistoryView.radius
-        contentView?.layer?.cornerCurve = .continuous
-        GlassKit.retint(contentView)
-        refreshGlassShadow()
+        glass = RoundGlassHost.install(host, radius: HistoryView.radius, in: self)
+        GlassKit.retint(glass)
     }
 
     private func restore(_ e: HistoryStore.Entry) { Self.restore(e, at: mouse) }

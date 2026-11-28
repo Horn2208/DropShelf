@@ -74,6 +74,62 @@ extension NSWindow {
     }
 }
 
+/// Glas-Panels (⌃V, Verlauf), die Schlüsselfenster werden: Auf macOS 26 zeichnet der Systemschatten eines
+/// Schlüsselfensters eine dunkle Kontur entlang des eckigen Fensterrahmens (schwarze Ecken außerhalb des runden Glases).
+/// Daher ohne Systemschatten: Das Glas sitzt um `margin` eingerückt, darum ein eigener Schatten nur auf der runden Form
+/// (unter dem Glas ausgespart, damit das Glas nicht dunkler wird).
+@MainActor
+final class RoundGlassHost: NSView {
+    static let margin: CGFloat = 24
+    let glass: NSView
+    private let shadowLayer = CALayer(), cutout = CAShapeLayer()
+    private let radius: CGFloat
+
+    /// Ersetzt den Inhalt von `window` (Rahmen um `margin` größer machen) und gibt das Glas zurück.
+    @discardableResult static func install(_ content: NSView, radius: CGFloat, in window: NSWindow) -> NSView {
+        window.hasShadow = false
+        let v = RoundGlassHost(content, radius: radius, size: window.frame.size)
+        window.contentView = v
+        return v.glass
+    }
+
+    private init(_ content: NSView, radius: CGFloat, size: CGSize) {
+        self.radius = radius
+        glass = GlassKit.wrap(content, radius: radius)
+        super.init(frame: NSRect(origin: .zero, size: size))
+        wantsLayer = true
+        layer?.backgroundColor = .clear
+        shadowLayer.shadowColor = NSColor.black.cgColor
+        shadowLayer.shadowOpacity = 0.28
+        shadowLayer.shadowRadius = 14
+        shadowLayer.shadowOffset = CGSize(width: 0, height: -6)
+        cutout.fillRule = .evenOdd
+        shadowLayer.mask = cutout
+        layer?.addSublayer(shadowLayer)
+        glass.frame = bounds.insetBy(dx: Self.margin, dy: Self.margin)
+        glass.autoresizingMask = [.width, .height]
+        addSubview(glass)
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func layout() {
+        super.layout()
+        CATransaction.begin(); CATransaction.setDisableActions(true)
+        let round = CGPath(roundedRect: glass.frame, cornerWidth: radius, cornerHeight: radius, transform: nil)
+        shadowLayer.frame = bounds
+        shadowLayer.shadowPath = round
+        let m = CGMutablePath(); m.addRect(bounds); m.addPath(round)
+        cutout.path = m
+        CATransaction.commit()
+    }
+
+    /// Klicks im durchsichtigen Schattenrand nicht dem Panel zuordnen.
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        let p = convert(point, from: superview)
+        return glass.frame.contains(p) ? super.hitTest(point) : nil
+    }
+}
+
 /// Fenster-Glas: ab macOS 26 echtes Liquid Glass (`NSGlassEffectView`), davor Effekt-View.
 @MainActor
 enum GlassKit {
