@@ -6,6 +6,15 @@
     <description>Updates für DropShelf</description>
     <language>de</language>
     <item>
+      <title>Version 3.3.4</title>
+      <pubDate>Sat, 28 Nov 2026 10:30:00 +0000</pubDate>
+      <description><![CDATA[<ul><li>History panel now looks like the clipboard panel (same glass, size and rows)</li><li>Fixed black square edges around the rounded glass of the history and clipboard panels</li><li>No more focus ring on "Clear history"</li></ul>]]></description>
+      <sparkle:version>9</sparkle:version>
+      <sparkle:shortVersionString>3.3.4</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/Horn2208/DropShelf/releases/download/v3.3.4/DropShelf-3.3.4.zip" sparkle:edSignature="SuhqMKiwUtrsvWQtRkuzm3YPf67TIH3e11GTfR3aNlMDbr0bw742xPvcLKI+0V/8rdswn3StpjM/I3FS5LBHCg==" length="6770554" type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 3.3.3</title>
       <pubDate>Sat, 28 Nov 2026 09:45:00 +0000</pubDate>
       <description><![CDATA[<ul><li>File formats as toggle pills, grouped by Image, Document and Media</li><li>Related extensions switch on together (e.g. LibreOffice: odt, ods, odp, odf)</li><li>Rarer formats tucked under "More formats"</li></ul>]]></description>
