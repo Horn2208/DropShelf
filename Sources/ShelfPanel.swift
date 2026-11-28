@@ -88,7 +88,7 @@ final class ShelfPanel: NSPanel, NSWindowDelegate, @preconcurrency QLPreviewPane
         clampToScreen()
         actions.setFrame(actionsFrame(for: frame), display: false)
         addChildWindow(actions, ordered: .above)  // Kindfenster: bewegt sich beim Ziehen ohne Nachlauf mit
-        DispatchQueue.main.async { self.invalidateShadow() }
+        refreshGlassShadow()
 
         // Auswahl ändert sich bei offener Vorschau → Quick Look zeigt die neue Auswahl (Sink läuft vor der Änderung).
         selectSub = shelf.$selection.dropFirst().sink { [weak self] _ in

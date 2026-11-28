@@ -46,6 +46,34 @@ enum Motion {
     static func scale(_ from: CGFloat, on: Bool) -> CGFloat { enabled && !on ? from : 1 }
 }
 
+/// Gemeinsame Hülle der Glas-Panels (⌃V, Verlauf): Ersatz-Hintergrund ohne Liquid Glass, runder Zuschnitt, Pop-Animation.
+struct GlassPanelBody: ViewModifier {
+    let radius: CGFloat, appeared: Bool, anchor: UnitPoint
+    @Environment(\.colorScheme) private var scheme
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+        content
+            .background { if !GlassKit.liquid { scheme == .dark ? Color.black.opacity(0.25) : Color.white.opacity(0.35) } }
+            .clipShape(shape)
+            .overlay { if !GlassKit.liquid { shape.strokeBorder(scheme == .dark ? Color.white.opacity(0.2) : Color.black.opacity(0.12), lineWidth: 1).allowsHitTesting(false) } }
+            .scaleEffect(appeared || !Motion.enabled ? 1 : 0.92, anchor: anchor)
+            .animation(Motion.pop, value: appeared)
+    }
+}
+extension View {
+    func glassPanelBody(radius: CGFloat, appeared: Bool, anchor: UnitPoint) -> some View { modifier(GlassPanelBody(radius: radius, appeared: appeared, anchor: anchor)) }
+}
+
+extension NSWindow {
+    /// Schatten neu aus der runden Glasform berechnen. Einmal beim Anlegen reicht nicht: Glas und SwiftUI-Inhalt
+    /// stehen erst später, und auf macOS 26 baut jeder Schlüssel-Wechsel den Schatten um (sonst eckige Reste).
+    func refreshGlassShadow() {
+        for t in [0, 0.1, 0.4] as [Double] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + t) { [weak self] in self?.invalidateShadow() }
+        }
+    }
+}
+
 /// Fenster-Glas: ab macOS 26 echtes Liquid Glass (`NSGlassEffectView`), davor Effekt-View.
 @MainActor
 enum GlassKit {

@@ -35,6 +35,7 @@ final class ClipboardPanel: NSPanel {
 
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+    override func becomeKey() { super.becomeKey(); refreshGlassShadow() }
 
     private init(at mouse: CGPoint, previous: NSRunningApplication?) {
         self.mouse = mouse
@@ -54,8 +55,12 @@ final class ClipboardPanel: NSPanel {
         hasShadow = true
         let host = NSHostingView(rootView: ClipboardView(model: model, pick: { [weak self] in self?.paste($0) }))
         contentView = GlassKit.wrap(host, radius: ClipboardView.radius)
+        contentView?.wantsLayer = true  // Fensterfläche durchsichtig, Ecken rund: keine eckige Fläche unter dem Glas
+        contentView?.layer?.backgroundColor = .clear
+        contentView?.layer?.cornerRadius = ClipboardView.radius
+        contentView?.layer?.cornerCurve = .continuous
         GlassKit.retint(contentView)
-        DispatchQueue.main.async { self.invalidateShadow() }
+        refreshGlassShadow()
     }
 
     private func show() {
@@ -165,7 +170,6 @@ struct ClipboardView: View {
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: Self.radius, style: .continuous)
         let list = model.visible(store.entries)
         VStack(spacing: 0) {
             HStack(spacing: 8) {
@@ -203,11 +207,7 @@ struct ClipboardView: View {
                 }
             }
         }
-        .background { if !GlassKit.liquid { scheme == .dark ? Color.black.opacity(0.25) : Color.white.opacity(0.35) } }
-        .clipShape(shape)
-        .overlay { if !GlassKit.liquid { shape.strokeBorder(scheme == .dark ? Color.white.opacity(0.2) : Color.black.opacity(0.12), lineWidth: 1).allowsHitTesting(false) } }
-        .scaleEffect(appeared || !Motion.enabled ? 1 : 0.92, anchor: model.anchor)
-        .animation(Motion.pop, value: appeared)
+        .glassPanelBody(radius: Self.radius, appeared: appeared, anchor: model.anchor)
         .onAppear { DispatchQueue.main.async { appeared = true; focus = true } }
         .onChange(of: model.query) { _ in model.selected = 0 }
         .onChange(of: list.count) { n in model.selected = min(model.selected, max(n - 1, 0)) }
@@ -253,12 +253,12 @@ private struct ClipRow: View {
                 Image(systemName: entry.pinned ? "pin.fill" : "pin").font(.system(size: 12)).foregroundStyle(entry.pinned ? Color.accentColor : .secondary)
                     .frame(width: 22, height: 22).contentShape(Rectangle())
             }
-            .buttonStyle(.plain).opacity(hover || entry.pinned ? 1 : 0).help(entry.pinned ? "Lösen" : "Anpinnen")
+            .buttonStyle(.plain).focusable(false).focusEffectDisabled().opacity(hover || entry.pinned ? 1 : 0).help(entry.pinned ? "Lösen" : "Anpinnen")
             Button { store.remove(entry.id) } label: {
                 Image(systemName: "trash").font(.system(size: 12)).foregroundStyle(.secondary)
                     .frame(width: 22, height: 22).contentShape(Rectangle())
             }
-            .buttonStyle(.plain).opacity(hover || selected ? 1 : 0).help("Eintrag löschen").accessibilityLabel("Eintrag löschen")
+            .buttonStyle(.plain).focusable(false).focusEffectDisabled().opacity(hover || selected ? 1 : 0).help("Eintrag löschen").accessibilityLabel("Eintrag löschen")
             if index < 9 { Text("⌘\(index + 1)").font(.system(size: 11)).monospacedDigit().foregroundStyle(.tertiary) }
         }
         .padding(.horizontal, 10).frame(height: 52)

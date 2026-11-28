@@ -9,7 +9,7 @@ final class HistoryModel: ObservableObject {
 /// Glas-Panel „Verlauf“ an der Mausposition: Pfeiltasten, Enter, Esc; schließt beim Verlust des Fokus.
 @MainActor
 final class HistoryPanel: NSPanel {
-    static let size = CGSize(width: 320, height: 400)
+    static let size = ClipboardPanel.size
     private static var current: HistoryPanel?
     private let model = HistoryModel()
     private let mouse: CGPoint
@@ -26,6 +26,7 @@ final class HistoryPanel: NSPanel {
 
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+    override func becomeKey() { super.becomeKey(); refreshGlassShadow() }
 
     private init(at mouse: CGPoint) {
         self.mouse = mouse
@@ -46,8 +47,12 @@ final class HistoryPanel: NSPanel {
                                                        airDrop: { [weak self] in self?.close(); AirDropSender.shared.send(shelf: nil, urls: $0.urls) },
                                                        clear: { [weak self] in self?.confirmClear() }))
         contentView = GlassKit.wrap(host, radius: HistoryView.radius)
+        contentView?.wantsLayer = true  // Fensterfläche durchsichtig, Ecken rund: keine eckige Fläche unter dem Glas
+        contentView?.layer?.backgroundColor = .clear
+        contentView?.layer?.cornerRadius = HistoryView.radius
+        contentView?.layer?.cornerCurve = .continuous
         GlassKit.retint(contentView)
-        DispatchQueue.main.async { self.invalidateShadow() }
+        refreshGlassShadow()
     }
 
     private func restore(_ e: HistoryStore.Entry) { Self.restore(e, at: mouse) }
@@ -107,7 +112,6 @@ struct HistoryView: View {
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: Self.radius, style: .continuous)
         VStack(spacing: 0) {
             HStack {
                 Text("Verlauf").font(.system(size: 14, weight: .semibold))
@@ -115,7 +119,7 @@ struct HistoryView: View {
                 Text("\(store.entries.count)").font(.system(size: 12)).monospacedDigit().foregroundStyle(.secondary)
                     .contentTransition(.numericText())
             }
-            .padding(.horizontal, 20).padding(.top, 16).padding(.bottom, 8)
+            .padding(.horizontal, 22).padding(.top, 16).padding(.bottom, 8)
 
             if store.entries.isEmpty {
                 VStack(spacing: 8) {
@@ -137,7 +141,7 @@ struct HistoryView: View {
                                     .animation(Motion.smooth.map { $0.delay(Double(min(i, 8)) * 0.04) }, value: appeared)
                             }
                         }
-                        .padding(.horizontal, 10)
+                        .padding(.horizontal, 10).padding(.bottom, 10)
                     }
                     .onChange(of: model.selected) { i in
                         if store.entries.indices.contains(i) { withAnimation(Motion.snappy) { proxy.scrollTo(store.entries[i].id) } }
@@ -146,17 +150,11 @@ struct HistoryView: View {
             }
 
             Button("Verlauf leeren", action: clear)
-                .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(.secondary)
+                .buttonStyle(.plain).focusable(false).focusEffectDisabled().font(.system(size: 12)).foregroundStyle(.secondary)
                 .disabled(store.entries.isEmpty)
                 .frame(maxWidth: .infinity).padding(.vertical, 12)
         }
-        .background {
-            if !GlassKit.liquid { scheme == .dark ? Color.black.opacity(0.25) : Color.white.opacity(0.35) }
-        }
-        .clipShape(shape)
-        .overlay { if !GlassKit.liquid { shape.strokeBorder(scheme == .dark ? Color.white.opacity(0.2) : Color.black.opacity(0.12), lineWidth: 1).allowsHitTesting(false) } }
-        .scaleEffect(appeared || !Motion.enabled ? 1 : 0.92)
-        .animation(Motion.pop, value: appeared)
+        .glassPanelBody(radius: Self.radius, appeared: appeared, anchor: .center)
         .onAppear { DispatchQueue.main.async { appeared = true } }
         .onChange(of: store.entries.count) { n in model.selected = min(model.selected, max(n - 1, 0)) }
     }
@@ -177,14 +175,14 @@ private struct HistoryRow: View {
 
     var body: some View {
         let shown = Array(entry.urls.prefix(3))
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             ZStack {
                 ForEach(Array(shown.enumerated()), id: \.offset) { i, url in
                     let d = CGFloat(i - (shown.count - 1)) * 3
-                    Thumb(url: url, maxW: 36, maxH: 36, shadow: false).offset(x: d, y: -d)
+                    Thumb(url: url, maxW: 30, maxH: 30, shadow: false).offset(x: d, y: -d)
                 }
             }
-            .frame(width: 44, height: 44)
+            .frame(width: 36, height: 36)
             VStack(alignment: .leading, spacing: 1) {
                 Text(entry.title).font(.system(size: 13, weight: .medium)).lineLimit(1).truncationMode(.middle)
                 Text(Self.formatter.localizedString(for: entry.date, relativeTo: Date()))
@@ -192,7 +190,7 @@ private struct HistoryRow: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 10).frame(height: 56)
+        .padding(.horizontal, 10).frame(height: 52)
         .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.primary.opacity(selected ? 0.1 : 0)))
         .animation(Motion.snappy, value: selected)
         .overlay {
