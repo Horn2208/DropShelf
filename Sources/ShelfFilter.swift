@@ -36,7 +36,30 @@ enum FileFormats {
         case image, document, media
         var title: String { self == .image ? "Bild" : self == .document ? "Dokument" : "Medien" }
     }
-    struct Entry: Codable, Hashable { var ext: String; var category: Category }
+    struct Entry: Codable, Hashable {
+        var ext: String
+        var category: Category
+        var enabled = true
+
+        init(ext: String, category: Category, enabled: Bool = true) {
+            self.ext = ext; self.category = category; self.enabled = enabled
+        }
+
+        // Ältere gespeicherte Einträge haben kein „enabled“: gelten als aktiv.
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            ext = try c.decode(String.self, forKey: .ext)
+            category = try c.decode(Category.self, forKey: .category)
+            enabled = try c.decodeIfPresent(Bool.self, forKey: .enabled) ?? true
+        }
+    }
+
+    /// Vorschläge: Endungen, die macOS (UTType) nicht von sich aus als Bild/Dokument/Medium erkennt.
+    static let suggestions: [Category: [String]] = [
+        .image: ["xcf", "kra"],
+        .document: ["odt", "ods", "odp", "doc", "tex", "mobi", "djvu"],
+        .media: ["mkv", "mka", "ape", "wv"],
+    ]
 
     static let key = "extraFileFormats"
 
@@ -57,6 +80,6 @@ enum FileFormats {
 
     static func has(_ url: URL, _ c: Category) -> Bool {
         let e = url.pathExtension.lowercased()
-        return load().contains { $0.ext == e && $0.category == c }
+        return load().contains { $0.enabled && $0.ext == e && $0.category == c }
     }
 }

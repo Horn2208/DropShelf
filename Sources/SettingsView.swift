@@ -538,22 +538,52 @@ private struct FileFormatsGroup: View {
     private var ext: String? { FileFormats.normalize(text).flatMap { e in entries.contains { $0.ext == e } ? nil : e } }
 
     var body: some View {
-        SettingsGroup(title: "Dateiformate", footer: "Zusätzliche Endungen, die wie Bilder, Dokumente oder Medien behandelt werden (z. B. heic, jxl).") {
-            SettingsRow(symbol: "doc.badge.plus", title: "Endung hinzufügen") {
-                HStack {
-                    TextField("jxl", text: $text).textFieldStyle(.roundedBorder).frame(width: 80).onSubmit(add)
+        SettingsGroup(title: "Dateiformate", footer: "Pille antippen, um ein Format ein- oder auszuschalten. Eigene Endungen kannst du unten ergänzen.") {
+            ForEach(FileFormats.Category.allCases, id: \.self) { cat in
+                VStack(alignment: .leading, spacing: 8) {
+                    FormatSubheading(cat.title)
+                    FlowLayout(spacing: 8) {
+                        ForEach(pills(cat), id: \.ext) { p in
+                            FormatPill(ext: p.ext, isOn: p.on, removable: p.custom,
+                                       toggle: { toggle(p.ext, cat, custom: p.custom) },
+                                       remove: { entries.removeAll { $0.ext == p.ext }; FileFormats.save(entries) })
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16).padding(.vertical, 12)
+                .overlay(alignment: .bottom) { Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 1).padding(.leading, 16) }
+            }
+            SettingsRow(symbol: "plus.circle", title: "Eigene Endung") {
+                HStack(spacing: 8) {
+                    TextField("z. B. jxl", text: $text).textFieldStyle(.roundedBorder).frame(minWidth: 120, maxWidth: 160).onSubmit(add)
                     menuPicker($category) { ForEach(FileFormats.Category.allCases, id: \.self) { Text($0.title).tag($0) } }
-                    Button("Hinzufügen", action: add).disabled(ext == nil)
+                    Button(action: add) { Image(systemName: "plus").font(.system(size: 12, weight: .bold)).foregroundStyle(.white)
+                        .frame(width: 24, height: 24).background(NordicCobalt.accent.opacity(ext == nil ? 0.35 : 1), in: Circle()) }
+                        .buttonStyle(.plain).disabled(ext == nil).help("Hinzufügen")
                 }
             }
-            ForEach(entries, id: \.self) { e in
-                SettingsRow(symbol: nil, title: ".\(e.ext)", subtitle: "\(e.category.title)") {
-                    Button { entries.removeAll { $0 == e }; FileFormats.save(entries) } label: { Image(systemName: "minus.circle") }
-                        .buttonStyle(.borderless).help("Entfernen")
-                }
-            }
+            FormatSubheading("Zusatzpakete").padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
             ForEach(ConverterRegistry.packManifest.packs) { CodecPackRow(pack: $0) }
         }
+    }
+
+    /// Vorschläge (an, wenn gespeichert und aktiv) gefolgt von eigenen Endungen dieser Kategorie.
+    private func pills(_ cat: FileFormats.Category) -> [(ext: String, on: Bool, custom: Bool)] {
+        let sugg = FileFormats.suggestions[cat] ?? []
+        let base = sugg.map { e in (ext: e, on: entries.contains { $0.ext == e && $0.category == cat && $0.enabled }, custom: false) }
+        let own = entries.filter { $0.category == cat && !sugg.contains($0.ext) }.map { (ext: $0.ext, on: $0.enabled, custom: true) }
+        return base + own
+    }
+
+    private func toggle(_ e: String, _ cat: FileFormats.Category, custom: Bool) {
+        if let i = entries.firstIndex(where: { $0.ext == e && $0.category == cat }) {
+            if custom { entries[i].enabled.toggle() } else { entries.remove(at: i) }
+        } else {
+            entries.append(.init(ext: e, category: cat))
+        }
+        FileFormats.save(entries)
     }
 
     private func add() {
@@ -561,6 +591,71 @@ private struct FileFormatsGroup: View {
         entries.append(.init(ext: ext, category: category))
         FileFormats.save(entries)
         text = ""
+    }
+}
+
+private struct FormatSubheading: View {
+    let title: String
+    init(_ title: String) { self.title = title }
+    var body: some View { Text(title).font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary).textCase(.uppercase) }
+}
+
+/// Kapsel-Schalter für eine Endung; eigene Endungen haben ein „×“ zum Entfernen.
+private struct FormatPill: View {
+    let ext: String
+    let isOn: Bool
+    let removable: Bool
+    let toggle: () -> Void
+    let remove: () -> Void
+    @State private var hover = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(".\(ext)").font(.system(size: 13, weight: .medium))
+            if removable {
+                Button(action: remove) { Image(systemName: "xmark").font(.system(size: 9, weight: .bold)) }
+                    .buttonStyle(.plain).help("Entfernen").accessibilityLabel("\(ext) entfernen")
+            }
+        }
+        .foregroundStyle(isOn ? Color.white : Color.secondary)
+        .padding(.horizontal, 12).padding(.vertical, 5)
+        .background(Capsule().fill(isOn ? NordicCobalt.accent : Color.primary.opacity(hover ? 0.10 : 0.05)))
+        .overlay(Capsule().strokeBorder(isOn ? Color.clear : Color.primary.opacity(0.18), lineWidth: 1))
+        .opacity(hover && isOn ? 0.9 : 1)
+        .contentShape(Capsule())
+        .onTapGesture(perform: toggle)
+        .onHover { hover = $0 }
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: isOn)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: hover)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityValue(isOn ? "an" : "aus")
+    }
+}
+
+/// Bricht Unteransichten wie Fließtext in neue Zeilen um.
+private struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    private func rows(_ subviews: Subviews, width: CGFloat) -> (positions: [CGPoint], size: CGSize) {
+        var pos: [CGPoint] = [], x: CGFloat = 0, y: CGFloat = 0, rowH: CGFloat = 0, maxX: CGFloat = 0
+        for v in subviews {
+            let s = v.sizeThatFits(.unspecified)
+            if x > 0, x + s.width > width { x = 0; y += rowH + spacing; rowH = 0 }
+            pos.append(CGPoint(x: x, y: y))
+            x += s.width + spacing; rowH = max(rowH, s.height); maxX = max(maxX, x - spacing)
+        }
+        return (pos, CGSize(width: maxX, height: y + rowH))
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        rows(subviews, width: proposal.width ?? .infinity).size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let r = rows(subviews, width: bounds.width)
+        for (v, p) in zip(subviews, r.positions) { v.place(at: CGPoint(x: bounds.minX + p.x, y: bounds.minY + p.y), proposal: .unspecified) }
     }
 }
 
