@@ -56,9 +56,10 @@ enum FileFormats {
 
     /// Vorschläge: Endungen, die macOS (UTType) nicht von sich aus als Bild/Dokument/Medium erkennt.
     static let suggestions: [Category: [String]] = [
-        .image: ["xcf", "kra"],
-        .document: ["odt", "ods", "odp", "doc", "tex", "mobi", "djvu"],
-        .media: ["mkv", "mka", "ape", "wv"],
+        .image: ["xcf", "kra", "ora", "pdn", "afphoto", "afdesign", "sketch", "fig", "cdr", "pcx", "jxr", "bpg", "fits", "dpx", "kdc", "x3f", "mef"],
+        .document: ["odt", "ods", "odp", "odf", "doc", "dot", "tex", "bib", "mobi", "azw3", "djvu", "cbz", "cbr", "fb2", "chm", "xps",
+                    "wps", "wpd", "pub", "vsd", "vsdx", "mht", "adoc", "rst"],
+        .media: ["mkv", "mka", "ape", "wv", "tta", "dsf", "dff", "dts", "vob", "divx", "wtv", "mpc"],
     ]
 
     static let key = "extraFileFormats"

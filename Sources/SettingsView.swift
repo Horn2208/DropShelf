@@ -533,12 +533,9 @@ private struct ActivationPage: View {
 
 private struct FileFormatsGroup: View {
     @State private var entries = FileFormats.load()
-    @State private var text = ""
-    @State private var category = FileFormats.Category.image
-    private var ext: String? { FileFormats.normalize(text).flatMap { e in entries.contains { $0.ext == e } ? nil : e } }
 
     var body: some View {
-        SettingsGroup(title: "Dateiformate", footer: "Pille antippen, um ein Format ein- oder auszuschalten. Eigene Endungen kannst du unten ergänzen.") {
+        SettingsGroup(title: "Dateiformate", footer: "Pille antippen, um ein Format ein- oder auszuschalten.") {
             ForEach(FileFormats.Category.allCases, id: \.self) { cat in
                 VStack(alignment: .leading, spacing: 8) {
                     FormatSubheading(cat.title)
@@ -553,15 +550,6 @@ private struct FileFormatsGroup: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16).padding(.vertical, 12)
                 .overlay(alignment: .bottom) { Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 1).padding(.leading, 16) }
-            }
-            SettingsRow(symbol: "plus.circle", title: "Eigene Endung") {
-                HStack(spacing: 8) {
-                    TextField("z. B. jxl", text: $text).textFieldStyle(.roundedBorder).frame(minWidth: 120, maxWidth: 160).onSubmit(add)
-                    menuPicker($category) { ForEach(FileFormats.Category.allCases, id: \.self) { Text($0.title).tag($0) } }
-                    Button(action: add) { Image(systemName: "plus").font(.system(size: 12, weight: .bold)).foregroundStyle(.white)
-                        .frame(width: 24, height: 24).background(NordicCobalt.accent.opacity(ext == nil ? 0.35 : 1), in: Circle()) }
-                        .buttonStyle(.plain).disabled(ext == nil).help("Hinzufügen")
-                }
             }
             FormatSubheading("Zusatzpakete").padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 4)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -584,13 +572,6 @@ private struct FileFormatsGroup: View {
             entries.append(.init(ext: e, category: cat))
         }
         FileFormats.save(entries)
-    }
-
-    private func add() {
-        guard let ext else { return }
-        entries.append(.init(ext: ext, category: category))
-        FileFormats.save(entries)
-        text = ""
     }
 }
 
