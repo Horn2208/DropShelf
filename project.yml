@@ -37,8 +37,8 @@ targets:
       properties:
         LSUIElement: true
         CFBundleName: DropShelf
-        CFBundleShortVersionString: "3.3.3"
-        CFBundleVersion: "8"
+        CFBundleShortVersionString: "3.3.4"
+        CFBundleVersion: "9"
         SUFeedURL: https://raw.githubusercontent.com/Horn2208/DropShelf/main/appcast.xml
         SUPublicEDKey: "RTSyLJoLFyuuCyTbkZmlnJuzWX+31nFiQ8xiTnJspgs="
         SUEnableAutomaticChecks: true
@@ -89,8 +89,8 @@ targets:
       properties:
         LSUIElement: true
         CFBundleName: DropShelf
-        CFBundleShortVersionString: "3.3.3"
-        CFBundleVersion: "8"
+        CFBundleShortVersionString: "3.3.4"
+        CFBundleVersion: "9"
         SUFeedURL: https://raw.githubusercontent.com/Horn2208/DropShelf/main/appcast.xml
         SUPublicEDKey: "RTSyLJoLFyuuCyTbkZmlnJuzWX+31nFiQ8xiTnJspgs="
         SUEnableAutomaticChecks: true
@@ -134,8 +134,8 @@ targets:
       properties:
         LSUIElement: true
         CFBundleName: DropShelf
-        CFBundleShortVersionString: "3.3.3"
-        CFBundleVersion: "8"
+        CFBundleShortVersionString: "3.3.4"
+        CFBundleVersion: "9"
         SUFeedURL: https://raw.githubusercontent.com/Horn2208/DropShelf/main/appcast.xml
         SUPublicEDKey: "RTSyLJoLFyuuCyTbkZmlnJuzWX+31nFiQ8xiTnJspgs="
         SUEnableAutomaticChecks: true
