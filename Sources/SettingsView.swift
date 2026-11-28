@@ -533,6 +533,8 @@ private struct ActivationPage: View {
 
 private struct FileFormatsGroup: View {
     @State private var entries = FileFormats.load()
+    @State private var expanded: Set<FileFormats.Category> = []
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         SettingsGroup(title: "Dateiformate", footer: "Pille antippen, um ein Format ein- oder auszuschalten.") {
@@ -540,12 +542,13 @@ private struct FileFormatsGroup: View {
                 VStack(alignment: .leading, spacing: 8) {
                     FormatSubheading(cat.title)
                     FlowLayout(spacing: 8) {
-                        ForEach(pills(cat), id: \.ext) { p in
-                            FormatPill(ext: p.ext, isOn: p.on, removable: p.custom,
-                                       toggle: { toggle(p.ext, cat, custom: p.custom) },
-                                       remove: { entries.removeAll { $0.ext == p.ext }; FileFormats.save(entries) })
+                        ForEach(visiblePills(cat), id: \.id) { p in
+                            FormatPill(title: p.title, detail: p.detail, isOn: p.on, removable: p.custom,
+                                       toggle: { toggle(p, cat) },
+                                       remove: { entries.removeAll { $0.ext == p.id && $0.category == cat }; FileFormats.save(entries) })
                         }
                     }
+                    moreButton(cat)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16).padding(.vertical, 12)
@@ -557,19 +560,61 @@ private struct FileFormatsGroup: View {
         }
     }
 
-    /// Vorschläge (an, wenn gespeichert und aktiv) gefolgt von eigenen Endungen dieser Kategorie.
-    private func pills(_ cat: FileFormats.Category) -> [(ext: String, on: Bool, custom: Bool)] {
-        let sugg = FileFormats.suggestions[cat] ?? []
-        let base = sugg.map { e in (ext: e, on: entries.contains { $0.ext == e && $0.category == cat && $0.enabled }, custom: false) }
-        let own = entries.filter { $0.category == cat && !sugg.contains($0.ext) }.map { (ext: $0.ext, on: $0.enabled, custom: true) }
+    private struct Pill { let id: String; let title: String; let detail: String?; let exts: [String]; let on: Bool; let custom: Bool; let common: Bool }
+
+    private func isOn(_ e: String, _ cat: FileFormats.Category) -> Bool {
+        entries.contains { $0.ext == e && $0.category == cat && $0.enabled }
+    }
+
+    /// Familien (an, wenn alle Endungen aktiv) gefolgt von eigenen Endungen dieser Kategorie.
+    private func pills(_ cat: FileFormats.Category) -> [Pill] {
+        let fams = FileFormats.families[cat] ?? []
+        let known = Set(fams.flatMap(\.exts))
+        let base = fams.map { fam in
+            Pill(id: fam.exts[0], title: fam.name ?? ".\(fam.exts[0])", detail: fam.name == nil ? nil : fam.exts.joined(separator: " "),
+                 exts: fam.exts, on: fam.exts.allSatisfy { isOn($0, cat) }, custom: false, common: fam.common)
+        }
+        let own = entries.filter { $0.category == cat && !known.contains($0.ext) }
+            .map { Pill(id: $0.ext, title: ".\($0.ext)", detail: nil, exts: [$0.ext], on: $0.enabled, custom: true, common: true) }
         return base + own
     }
 
-    private func toggle(_ e: String, _ cat: FileFormats.Category, custom: Bool) {
-        if let i = entries.firstIndex(where: { $0.ext == e && $0.category == cat }) {
-            if custom { entries[i].enabled.toggle() } else { entries.remove(at: i) }
+    /// Häufige, eigene und aktivierte Pillen; ausgeklappt zusätzlich alle seltenen.
+    private func visiblePills(_ cat: FileFormats.Category) -> [Pill] {
+        pills(cat).filter { $0.common || $0.on || expanded.contains(cat) }
+    }
+
+    @ViewBuilder private func moreButton(_ cat: FileFormats.Category) -> some View {
+        let open = expanded.contains(cat)
+        let n = pills(cat).filter { !$0.common }.count
+        if n > 0 {
+            Button {
+                let flip = { if open { expanded.remove(cat) } else { expanded.insert(cat) } }
+                if reduceMotion { flip() } else { withAnimation(.easeOut(duration: 0.18), flip) }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(open ? "Weniger anzeigen" : "Weitere Formate (\(n))")
+                    Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold))
+                        .rotationEffect(.degrees(open ? 180 : 0))
+                }
+                .font(.system(size: 12)).foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityValue(open ? "ausgeklappt" : "eingeklappt")
+        }
+    }
+
+    /// Familie: alle an -> alle aus, sonst alle an. Eigene Endungen bleiben mit „aus“ erhalten.
+    private func toggle(_ p: Pill, _ cat: FileFormats.Category) {
+        if p.custom, let i = entries.firstIndex(where: { $0.ext == p.id && $0.category == cat }) {
+            entries[i].enabled.toggle()
+        } else if p.on {
+            entries.removeAll { $0.category == cat && p.exts.contains($0.ext) }
         } else {
-            entries.append(.init(ext: e, category: cat))
+            for e in p.exts {
+                if let i = entries.firstIndex(where: { $0.ext == e && $0.category == cat }) { entries[i].enabled = true }
+                else { entries.append(.init(ext: e, category: cat)) }
+            }
         }
         FileFormats.save(entries)
     }
@@ -583,7 +628,8 @@ private struct FormatSubheading: View {
 
 /// Kapsel-Schalter für eine Endung; eigene Endungen haben ein „×“ zum Entfernen.
 private struct FormatPill: View {
-    let ext: String
+    let title: String
+    let detail: String?
     let isOn: Bool
     let removable: Bool
     let toggle: () -> Void
@@ -593,10 +639,11 @@ private struct FormatPill: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Text(".\(ext)").font(.system(size: 13, weight: .medium))
+            Text(title).font(.system(size: 13, weight: .medium))
+            if let detail { Text(detail).font(.system(size: 10)).opacity(0.75) }
             if removable {
                 Button(action: remove) { Image(systemName: "xmark").font(.system(size: 9, weight: .bold)) }
-                    .buttonStyle(.plain).help("Entfernen").accessibilityLabel("\(ext) entfernen")
+                    .buttonStyle(.plain).help("Entfernen").accessibilityLabel("\(title) entfernen")
             }
         }
         .foregroundStyle(isOn ? Color.white : Color.secondary)

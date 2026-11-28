@@ -54,12 +54,28 @@ enum FileFormats {
         }
     }
 
+    /// Familie zusammengehöriger Endungen: eine Pille schaltet alle gemeinsam. `name` nil = Einzelendung.
+    struct Family {
+        let name: String?
+        let exts: [String]
+        let common: Bool   // direkt sichtbar; sonst unter „Weitere Formate“
+    }
+
+    private static func f(_ name: String?, _ exts: String, _ common: Bool = true) -> Family {
+        Family(name: name, exts: exts.split(separator: " ").map(String.init), common: common)
+    }
+
     /// Vorschläge: Endungen, die macOS (UTType) nicht von sich aus als Bild/Dokument/Medium erkennt.
-    static let suggestions: [Category: [String]] = [
-        .image: ["xcf", "kra", "ora", "pdn", "afphoto", "afdesign", "sketch", "fig", "cdr", "pcx", "jxr", "bpg", "fits", "dpx", "kdc", "x3f", "mef"],
-        .document: ["odt", "ods", "odp", "odf", "doc", "dot", "tex", "bib", "mobi", "azw3", "djvu", "cbz", "cbr", "fb2", "chm", "xps",
-                    "wps", "wpd", "pub", "vsd", "vsdx", "mht", "adoc", "rst"],
-        .media: ["mkv", "mka", "ape", "wv", "tta", "dsf", "dff", "dts", "vob", "divx", "wtv", "mpc"],
+    static let families: [Category: [Family]] = [
+        .image: [f("Malprogramme", "xcf kra ora pdn"), f("Affinity", "afphoto afdesign"), f("Design", "sketch fig cdr"),
+                 f("Kamera-RAW", "kdc x3f mef", false), f(nil, "dpx", false), f(nil, "pcx", false), f(nil, "jxr", false),
+                 f(nil, "bpg", false), f(nil, "fits", false)],
+        .document: [f("LibreOffice", "odt ods odp odf"), f("Word alt", "doc dot"), f("E-Books", "mobi azw3 fb2"),
+                    f("Comics", "cbz cbr"), f(nil, "djvu"), f("LaTeX", "tex bib"),
+                    f("Visio", "vsd vsdx", false), f("Markup", "adoc rst", false),
+                    f("Sonstige Office", "wps wpd pub xps chm mht", false)],
+        .media: [f("Matroska", "mkv mka"), f("Verlustfreies Audio", "ape wv tta mpc"), f("DVD/Video alt", "vob divx wtv"),
+                 f("DSD-Audio", "dsf dff", false), f(nil, "dts", false)],
     ]
 
     static let key = "extraFileFormats"
